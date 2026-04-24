@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SafeCompass Framework</title>
+    <link rel="stylesheet" href="./src/styles/main.css" />
+  </head>
+  <body>
+    <header class="header">
+      <div class="brand">
+        <div class="brand-mark">SC</div>
+        <div>
+          <div class="brand-title">SafeCompass Framework</div>
+          <div class="brand-subtitle">大模型安全评测框架原型</div>
+        </div>
+      </div>
+    </header>
+
+    <main class="page-shell">
+      <section class="layout">
+        <div class="main-column">
+          <section class="card" id="config">
+            <div class="card-header">
+              <div>
+                <p class="section-kicker">Step 1</p>
+                <h2>评测配置</h2>
+              </div>
+              <span class="badge">foundation</span>
+            </div>
+            <div class="card-body">
+              <div class="grid two-col">
+                <label class="field">
+                  <span class="field-label">API Base URL</span>
+                  <input
+                    class="field-control"
+                    id="apiUrl"
+                    type="text"
+                    placeholder="https://api.openai.com/v1"
+                  />
+                  <span class="field-hint">兼容 OpenAI 风格接口，后续可接 vLLM / 本地网关</span>
+                </label>
+              </div>
+
+              <div class="grid two-col">
+                <label class="field">
+                  <span class="field-label">API 密钥</span>
+                  <input class="field-control" id="apiKey" type="password" placeholder="sk-..." />
+                </label>
+                <label class="field">
+                  <span class="field-label">模型名称</span>
+                  <input
+                    class="field-control"
+                    id="customModelName"
+                    type="text"
+                    placeholder="例如：gpt-4o-mini / deepseek-chat"
+                  />
+                </label>
+              </div>
+
+              <div class="field">
+                <span class="field-label">Benchmark / 数据集</span>
+                <div class="dataset-tags" id="datasetTags"></div>
+              </div>
+
+              <section class="custom-panel hidden" id="customDatasetArea">
+                <div class="grid two-col">
+                  <div class="subcard">
+                    <div class="subcard-title">上传 JSON / CSV</div>
+                    <input id="fileUpload" type="file" accept=".json,.csv" hidden />
+                    <div class="inline-actions">
+                      <button class="btn btn-secondary" id="uploadBtn" type="button">选择文件</button>
+                      <span class="muted" id="fileName">未选择文件</span>
+                      <span class="pill" id="filePreview"></span>
+                    </div>
+                    <p class="helper-text">JSON 支持数组或 `cases` 数组；CSV 需包含 `prompt` 列。</p>
+                  </div>
+
+                  <div class="subcard">
+                    <div class="subcard-title">手动添加测试用例</div>
+                    <div class="inline-actions stretch">
+                      <input class="field-control" id="newPrompt" type="text" placeholder="输入测试 prompt" />
+                      <button class="btn btn-secondary" id="addPromptBtn" type="button">添加</button>
+                    </div>
+                    <div class="prompt-list" id="promptList"></div>
+                  </div>
+                </div>
+
+                <div class="custom-summary" id="customDataStats">已加载 0 条测试用例</div>
+              </section>
+
+              <div class="grid two-col">
+                <label class="field">
+                  <span class="field-label">攻击类型筛选</span>
+                  <select class="field-control" id="attackTypeFilter"></select>
+                </label>
+                <label class="field">
+                  <span class="field-label">危害类别筛选</span>
+                  <select class="field-control" id="categoryFilter"></select>
+                </label>
+              </div>
+
+              <div class="grid two-col">
+                <label class="field" id="datasetSubsetField">
+                  <span class="field-label">JailbreakBench 子集</span>
+                  <select class="field-control" id="datasetSubsetSelect">
+                    <option value="behaviors">behaviors</option>
+                    <option value="judge_comparison">judge_comparison</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span class="field-label">最大样本数</span>
+                  <input
+                    class="field-control"
+                    id="caseLimit"
+                    type="number"
+                    min="1"
+                    step="1"
+                    value="20"
+                  />
+                  <span class="field-hint">默认先跑 20 条，避免一次性调用过多请求</span>
+                </label>
+              </div>
+
+              <div class="actions">
+                <button class="btn btn-secondary" id="resetBtn" type="button">重置</button>
+                <button class="btn btn-primary" id="runBtn" type="button">开始评测</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="card hidden" id="progressCard">
+            <div class="card-header">
+              <div>
+                <p class="section-kicker">Step 2</p>
+                <h2>执行进度</h2>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+              </div>
+              <div class="progress-status" id="progressStatus">等待执行</div>
+            </div>
+          </section>
+
+          <section class="card hidden" id="resultCard">
+            <div class="card-header" id="results">
+              <div>
+                <p class="section-kicker">Step 3</p>
+                <h2>评测结果</h2>
+              </div>
+              <button class="btn btn-secondary" id="exportBtn" type="button">导出 JSON</button>
+            </div>
+            <div class="card-body">
+              <div class="stats-grid" id="statsGrid"></div>
+              <div class="table-shell">
+                <table class="result-table">
+                  <thead>
+                    <tr>
+                      <th>用例 ID</th>
+                      <th>来源</th>
+                      <th>攻击类型</th>
+                      <th>危害类别</th>
+                      <th>得分</th>
+                      <th>判定结果</th>
+                    </tr>
+                  </thead>
+                  <tbody id="resultTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <aside class="side-column">
+          <section class="card">
+            <div class="card-header">
+              <div>
+                <p class="section-kicker">Workspace</p>
+                <h2>执行日志</h2>
+              </div>
+              <button class="btn btn-secondary" id="clearLogBtn" type="button">清空</button>
+            </div>
+            <div class="card-body">
+              <div class="log-area" id="logArea"></div>
+            </div>
+          </section>
+        </aside>
+      </section>
+    </main>
+
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>
