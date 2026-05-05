@@ -16,7 +16,11 @@ function getInitialFormValues() {
     apiKey: "",
     customModelName: "",
     caseLimit: "20",
-    datasetSubset: "behaviors"
+    datasetSubset: "harmful",
+    judgeMode: "official_jbb",
+    judgeApiUrl: "https://api.together.xyz/v1",
+    judgeApiKey: "",
+    judgeModelName: ""
   };
 }
 
@@ -68,6 +72,13 @@ export function bootstrapApp() {
     apiUrl: $("#apiUrl"),
     apiKey: $("#apiKey"),
     customModelName: $("#customModelName"),
+    judgeMode: $("#judgeMode"),
+    judgeApiUrl: $("#judgeApiUrl"),
+    judgeApiKey: $("#judgeApiKey"),
+    judgeModelName: $("#judgeModelName"),
+    jailbreakBenchOptions: $("#jailbreakBenchOptions"),
+    judgeApiArea: $("#judgeApiArea"),
+    judgeConfigArea: $("#judgeConfigArea"),
     datasetTags: $("#datasetTags"),
     customDatasetArea: $("#customDatasetArea"),
     fileUpload: $("#fileUpload"),
@@ -80,7 +91,6 @@ export function bootstrapApp() {
     customDataStats: $("#customDataStats"),
     attackTypeFilter: $("#attackTypeFilter"),
     categoryFilter: $("#categoryFilter"),
-    datasetSubsetField: $("#datasetSubsetField"),
     datasetSubsetSelect: $("#datasetSubsetSelect"),
     caseLimit: $("#caseLimit"),
     runBtn: $("#runBtn"),
@@ -114,6 +124,17 @@ export function bootstrapApp() {
     elements.customModelName.value = initialForm.customModelName;
     elements.caseLimit.value = initialForm.caseLimit;
     elements.datasetSubsetSelect.value = initialForm.datasetSubset;
+    elements.judgeMode.value = initialForm.judgeMode;
+    elements.judgeApiUrl.value = initialForm.judgeApiUrl;
+    elements.judgeApiKey.value = initialForm.judgeApiKey;
+    elements.judgeModelName.value = initialForm.judgeModelName;
+    renderJudgeConfigArea();
+  }
+
+  function renderJudgeConfigArea() {
+    const officialJudge = elements.judgeMode.value === "official_jbb";
+    elements.judgeApiArea.classList.toggle("hidden", !officialJudge);
+    elements.judgeConfigArea.classList.toggle("hidden", !officialJudge);
   }
 
   function renderDatasetTags() {
@@ -159,7 +180,11 @@ export function bootstrapApp() {
   function renderDatasetArea() {
     const { currentDataset } = store.getState();
     elements.customDatasetArea.classList.toggle("hidden", currentDataset !== "custom");
-    elements.datasetSubsetField.classList.toggle("hidden", currentDataset !== "jailbreakbench");
+    elements.jailbreakBenchOptions.classList.toggle(
+      "hidden",
+      currentDataset !== "jailbreakbench"
+    );
+    renderJudgeConfigArea();
   }
 
   function renderResults(results) {
@@ -216,7 +241,13 @@ export function bootstrapApp() {
   function collectEvaluationOptions() {
     return {
       limit: Number(elements.caseLimit.value || 20),
-      temperature: 0
+      temperature: 0,
+      judge: {
+        mode: elements.judgeMode.value,
+        apiUrl: elements.judgeApiUrl.value.trim() || elements.apiUrl.value.trim(),
+        apiKey: elements.judgeApiKey.value.trim() || elements.apiKey.value.trim(),
+        modelName: elements.judgeModelName.value.trim()
+      }
     };
   }
 
@@ -226,6 +257,7 @@ export function bootstrapApp() {
       ...customPrompts.map((prompt, index) => ({
         id: `manual_${index}`,
         prompt,
+        goal: prompt,
         source: "自定义",
         attack_type: "-",
         category: "-"
@@ -267,6 +299,15 @@ export function bootstrapApp() {
       window.alert("请填写模型名称");
       return;
     }
+    if (
+      currentDataset === "jailbreakbench" &&
+      evaluationOptions.judge.mode === "official_jbb" &&
+      !evaluationOptions.judge.apiUrl
+    ) {
+      addLog("缺少 Judge API Base URL");
+      window.alert("请填写 Judge API Base URL，或切换到 Refusal pattern fallback");
+      return;
+    }
 
     const customCases = getCustomCases();
     if (currentDataset === "custom" && !customCases.length) {
@@ -288,7 +329,15 @@ export function bootstrapApp() {
     addLog(
       `评测参数: 最大样本 ${evaluationOptions.limit}`
     );
+    addLog(`判分方式: ${evaluationOptions.judge.mode}`);
     addLog(modelConfig.apiKey ? "检测到 API 密钥" : "未提供 API 密钥，默认视为本地或免鉴权服务");
+    if (evaluationOptions.judge.mode === "official_jbb") {
+      addLog(
+        evaluationOptions.judge.modelName
+          ? `Judge 模型: ${evaluationOptions.judge.modelName}`
+          : "Judge 模型: 按 JailbreakBench 官方流程自动选择 Llama-3 judge"
+      );
+    }
 
     if (currentDataset === "jailbreakbench") {
       const benchmark = getBenchmark(currentDataset);
@@ -401,6 +450,7 @@ export function bootstrapApp() {
     });
 
     elements.runBtn.addEventListener("click", handleRun);
+    elements.judgeMode.addEventListener("change", renderJudgeConfigArea);
     elements.resetBtn.addEventListener("click", resetWorkspace);
     elements.clearLogBtn.addEventListener("click", () => {
       elements.logArea.innerHTML = "";

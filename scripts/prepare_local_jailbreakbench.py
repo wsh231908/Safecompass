@@ -16,6 +16,8 @@ HARMFUL_CSV = DATA_DIR / "harmful-behaviors.csv"
 JUDGE_CSV = DATA_DIR / "judge-comparison.csv"
 
 BEHAVIORS_JSON = DATA_DIR / "behaviors.json"
+HARMFUL_JSON = DATA_DIR / "harmful.json"
+BENIGN_JSON = DATA_DIR / "benign.json"
 JUDGE_JSON = DATA_DIR / "judge_comparison.json"
 
 
@@ -24,25 +26,24 @@ def read_csv(path: Path) -> list[dict[str, str]]:
         return list(csv.DictReader(handle))
 
 
-def build_behaviors_records() -> list[dict[str, str]]:
+def build_behavior_records(source_file: Path, source_kind: str) -> list[dict[str, str]]:
     records: list[dict[str, str]] = []
 
-    for source_file, source_kind in ((HARMFUL_CSV, "harmful"), (BENIGN_CSV, "benign")):
-        if not source_file.exists():
-            continue
+    if not source_file.exists():
+        return records
 
-        for index, row in enumerate(read_csv(source_file)):
-            records.append(
-                {
-                    "id": f"{source_kind}_{row.get('Index', index)}",
-                    "goal": row.get("Goal", ""),
-                    "target": row.get("Target", ""),
-                    "behavior": row.get("Behavior", ""),
-                    "category": row.get("Category", "-"),
-                    "source": row.get("Source", "JailbreakBench"),
-                    "behavior_type": source_kind,
-                }
-            )
+    for index, row in enumerate(read_csv(source_file)):
+        records.append(
+            {
+                "id": f"{source_kind}_{row.get('Index', index)}",
+                "goal": row.get("Goal", ""),
+                "target": row.get("Target", ""),
+                "behavior": row.get("Behavior", ""),
+                "category": row.get("Category", "-"),
+                "source": row.get("Source", "JailbreakBench"),
+                "behavior_type": source_kind,
+            }
+        )
 
     return records
 
@@ -85,7 +86,9 @@ def write_json(path: Path, subset: str, records: list[dict[str, str]]) -> None:
 
 
 def main() -> None:
-    behaviors = build_behaviors_records()
+    harmful = build_behavior_records(HARMFUL_CSV, "harmful")
+    benign = build_behavior_records(BENIGN_CSV, "benign")
+    behaviors = harmful + benign
     judges = build_judge_records()
 
     if not behaviors and not judges:
@@ -96,6 +99,14 @@ def main() -> None:
     if behaviors:
         write_json(BEHAVIORS_JSON, "behaviors", behaviors)
         print(f"Prepared {len(behaviors)} records -> {BEHAVIORS_JSON}")
+
+    if harmful:
+        write_json(HARMFUL_JSON, "harmful", harmful)
+        print(f"Prepared {len(harmful)} records -> {HARMFUL_JSON}")
+
+    if benign:
+        write_json(BENIGN_JSON, "benign", benign)
+        print(f"Prepared {len(benign)} records -> {BENIGN_JSON}")
 
     if judges:
         write_json(JUDGE_JSON, "judge_comparison", judges)

@@ -89,25 +89,69 @@
                 <div class="custom-summary" id="customDataStats">已加载 0 条测试用例</div>
               </section>
 
-              <div class="grid two-col">
-                <label class="field">
-                  <span class="field-label">攻击类型筛选</span>
-                  <select class="field-control" id="attackTypeFilter"></select>
-                </label>
-                <label class="field">
-                  <span class="field-label">危害类别筛选</span>
-                  <select class="field-control" id="categoryFilter"></select>
-                </label>
-              </div>
+              <section class="custom-panel hidden" id="jailbreakBenchOptions">
+                <div class="grid two-col">
+                  <label class="field">
+                    <span class="field-label">JailbreakBench 子集</span>
+                    <select class="field-control" id="datasetSubsetSelect">
+                      <option value="harmful">harmful</option>
+                      <option value="benign">benign</option>
+                      <option value="behaviors">all behaviors</option>
+                      <option value="judge_comparison">judge_comparison</option>
+                    </select>
+                  </label>
+                  <label class="field">
+                    <span class="field-label">判分方式</span>
+                    <select class="field-control" id="judgeMode">
+                      <option value="official_jbb">JailbreakBench official judge</option>
+                      <option value="refusal_pattern">Refusal pattern fallback</option>
+                    </select>
+                    <span class="field-hint">官方流程会先调用被测模型，再调用独立 judge 模型复判</span>
+                  </label>
+                </div>
+
+                <div class="grid two-col">
+                  <label class="field">
+                    <span class="field-label">攻击类型筛选</span>
+                    <select class="field-control" id="attackTypeFilter"></select>
+                  </label>
+                  <label class="field">
+                    <span class="field-label">危害类别筛选</span>
+                    <select class="field-control" id="categoryFilter"></select>
+                  </label>
+                </div>
+
+                <div class="grid two-col" id="judgeApiArea">
+                  <label class="field">
+                    <span class="field-label">Judge API Base URL</span>
+                    <input
+                      class="field-control"
+                      id="judgeApiUrl"
+                      type="text"
+                      placeholder="https://api.together.xyz/v1"
+                    />
+                  </label>
+                  <label class="field">
+                    <span class="field-label">Judge API 密钥</span>
+                    <input class="field-control" id="judgeApiKey" type="password" placeholder="可留空复用被测模型密钥" />
+                  </label>
+                </div>
+
+                <div class="grid two-col" id="judgeConfigArea">
+                  <label class="field">
+                    <span class="field-label">Judge 模型名称</span>
+                    <input
+                      class="field-control"
+                      id="judgeModelName"
+                      type="text"
+                      placeholder="留空按 JBB 官方流程自动选择 Llama-3 judge"
+                    />
+                    <span class="field-hint">harmful 使用 Llama-3-70B，benign 使用 Llama-3-8B</span>
+                  </label>
+                </div>
+              </section>
 
               <div class="grid two-col">
-                <label class="field" id="datasetSubsetField">
-                  <span class="field-label">JailbreakBench 子集</span>
-                  <select class="field-control" id="datasetSubsetSelect">
-                    <option value="behaviors">behaviors</option>
-                    <option value="judge_comparison">judge_comparison</option>
-                  </select>
-                </label>
                 <label class="field">
                   <span class="field-label">最大样本数</span>
                   <input

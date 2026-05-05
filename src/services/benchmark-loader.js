@@ -4,18 +4,18 @@ function normalizeJailbreakBenchRecord(record, index, subset) {
   const prompt =
     record.prompt ??
     record.Prompt ??
-    record.behavior ??
-    record.Behavior ??
-    record.goal ??
     record.goal ??
     record.Goal ??
     record.instruction ??
     record.query ??
+    record.behavior ??
+    record.Behavior ??
     "";
 
   return {
     id: record.id || record.uid || record.Index || `jbb_${subset}_${index}`,
     prompt,
+    goal: record.goal || record.Goal || prompt,
     source: record.source || record.Source || "JailbreakBench",
     attack_type:
       record.attack_type ||
@@ -27,6 +27,7 @@ function normalizeJailbreakBenchRecord(record, index, subset) {
       "-",
     category:
       record.category || record.Category || record.harm_category || record.topic || "-",
+    behavior_type: record.behavior_type || record.behaviorType || subset,
     raw: record
   };
 }

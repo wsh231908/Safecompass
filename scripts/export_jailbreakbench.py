@@ -16,7 +16,12 @@ from urllib.request import urlopen
 DATASET_ID = "JailbreakBench/JBB-Behaviors"
 DATASET_VIEWER_BASE = "https://datasets-server.huggingface.co"
 DEFAULT_OUTPUT_DIR = Path("data/benchmarks/jailbreakbench")
-SUPPORTED_SUBSETS = ("behaviors", "judge_comparison")
+SUPPORTED_SUBSETS = ("harmful", "benign", "judge_comparison")
+DEFAULT_SPLITS = {
+    "harmful": "harmful",
+    "benign": "benign",
+    "judge_comparison": "test",
+}
 PAGE_SIZE = 100
 
 
@@ -27,13 +32,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--subset",
         choices=SUPPORTED_SUBSETS,
-        default="behaviors",
+        default="harmful",
         help="Subset/config name.",
     )
     parser.add_argument(
         "--split",
-        default="train",
-        help="Dataset split to load. Default: train",
+        default=None,
+        help="Dataset split to load. Defaults to the official JailbreakBench split for the subset.",
     )
     parser.add_argument(
         "--limit",
@@ -74,11 +79,12 @@ def request_json(path: str, params: dict[str, Any], timeout: int) -> dict[str, A
 
 
 def fetch_rows(subset: str, split: str, offset: int, length: int, timeout: int) -> dict[str, Any]:
+    config = "behaviors" if subset in {"harmful", "benign"} else subset
     return request_json(
         "/rows",
         {
             "dataset": DATASET_ID,
-            "config": subset,
+            "config": config,
             "split": split,
             "offset": offset,
             "length": length,
@@ -125,7 +131,8 @@ def export_subset(subset: str, split: str, limit: int, timeout: int) -> list[dic
 
 def main() -> None:
     args = parse_args()
-    records = export_subset(args.subset, args.split, args.limit, args.timeout)
+    split = args.split or DEFAULT_SPLITS[args.subset]
+    records = export_subset(args.subset, split, args.limit, args.timeout)
 
     output_path = args.output or (DEFAULT_OUTPUT_DIR / f"{args.subset}.json")
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -133,7 +140,7 @@ def main() -> None:
     payload = {
         "dataset": DATASET_ID,
         "subset": args.subset,
-        "split": args.split,
+        "split": split,
         "count": len(records),
         "records": records,
         "source": "dataset-viewer-api",

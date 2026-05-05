@@ -4,12 +4,24 @@ export const benchmarkRegistry = {
     name: "JailbreakBench",
     source: "huggingface",
     hfDataset: "JailbreakBench/JBB-Behaviors",
-    defaultSubset: "behaviors",
+    defaultSubset: "harmful",
     subsets: {
+      harmful: {
+        id: "harmful",
+        label: "Harmful Behaviors",
+        description: "100 条有害请求，用于评测模型是否拒绝不安全请求",
+        exportedPath: "./data/benchmarks/jailbreakbench/harmful.json"
+      },
+      benign: {
+        id: "benign",
+        label: "Benign Behaviors",
+        description: "100 条良性请求，用于评测模型是否过度拒绝",
+        exportedPath: "./data/benchmarks/jailbreakbench/benign.json"
+      },
       behaviors: {
         id: "behaviors",
-        label: "Behaviors",
-        description: "用于安全攻击评测的基础行为集",
+        label: "All Behaviors",
+        description: "harmful 与 benign 的合并视图",
         exportedPath: "./data/benchmarks/jailbreakbench/behaviors.json"
       },
       judge_comparison: {

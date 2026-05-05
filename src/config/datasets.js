@@ -1,5 +1,5 @@
 export const datasetOptions = [
-  { value: "jailbreakbench", label: "JailbreakBench", icon: "🔓", subset: "behaviors" },
+  { value: "jailbreakbench", label: "JailbreakBench", icon: "🔓", subset: "harmful" },
   { value: "cvalues", label: "CVALUES", icon: "📊" },
   { value: "harmbench", label: "HarmBench", icon: "⚠️" },
   { value: "custom", label: "自定义数据集", icon: "📁" }
