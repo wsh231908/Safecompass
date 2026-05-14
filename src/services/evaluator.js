@@ -1,4 +1,5 @@
 import { builtinResults } from "../config/datasets.js";
+import { applyAttackStrategy } from "./attack-strategies.js";
 import { loadBenchmarkCases } from "./benchmark-loader.js";
 
 async function postEvaluationJob(payload) {
@@ -33,6 +34,13 @@ function buildProgressDriver(onProgress) {
   };
 }
 
+function matchesFilter(value, selectedValue) {
+  if (!selectedValue || selectedValue === "all") {
+    return true;
+  }
+  return String(value || "-") === selectedValue;
+}
+
 export function createApiEvaluator() {
   return {
     async run({
@@ -52,6 +60,14 @@ export function createApiEvaluator() {
         const loaded = await loadBenchmarkCases(dataset, datasetSubset);
         selectedCases = loaded.records;
       }
+
+      const filters = evaluationOptions.filters || {};
+      selectedCases = selectedCases.filter(
+        (testCase) => matchesFilter(testCase.category, filters.category)
+      );
+      selectedCases = selectedCases.map((testCase) =>
+        applyAttackStrategy(testCase, evaluationOptions.attackStrategy || "direct")
+      );
 
       const limit = Number(evaluationOptions.limit || 20);
       const cappedCases = limit > 0 ? selectedCases.slice(0, limit) : selectedCases;

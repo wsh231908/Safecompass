@@ -1,10 +1,8 @@
-import {
-  attackTypeOptions,
-  categoryOptions,
-  datasetOptions
-} from "./config/datasets.js";
+import { datasetOptions } from "./config/datasets.js";
+import { attackStrategyOptions } from "./services/attack-strategies.js";
 import { exportJson } from "./services/exporter.js";
 import { createApiEvaluator } from "./services/evaluator.js";
+import { loadBenchmarkCases } from "./services/benchmark-loader.js";
 import { createStore } from "./state/store.js";
 import { $, createOptions, escapeHtml } from "./utils/dom.js";
 import { formatTimestamp, summarizeResults } from "./utils/format.js";
@@ -12,13 +10,14 @@ import { getBenchmark } from "./benchmarks/registry.js";
 
 function getInitialFormValues() {
   return {
-    apiUrl: "https://api.openai.com/v1",
+    apiUrl: "https://api.moark.com/v1",
     apiKey: "",
     customModelName: "",
     caseLimit: "20",
     datasetSubset: "harmful",
+    attackStrategy: "direct",
     judgeMode: "official_jbb",
-    judgeApiUrl: "https://api.together.xyz/v1",
+    judgeApiUrl: "https://api.moark.com/v1",
     judgeApiKey: "",
     judgeModelName: ""
   };
@@ -89,9 +88,8 @@ export function bootstrapApp() {
     addPromptBtn: $("#addPromptBtn"),
     promptList: $("#promptList"),
     customDataStats: $("#customDataStats"),
-    attackTypeFilter: $("#attackTypeFilter"),
+    attackStrategySelect: $("#attackStrategySelect"),
     categoryFilter: $("#categoryFilter"),
-    datasetSubsetSelect: $("#datasetSubsetSelect"),
     caseLimit: $("#caseLimit"),
     runBtn: $("#runBtn"),
     resetBtn: $("#resetBtn"),
@@ -116,19 +114,41 @@ export function bootstrapApp() {
   }
 
   function renderSelects() {
-    elements.attackTypeFilter.innerHTML = createOptions(attackTypeOptions);
-    elements.categoryFilter.innerHTML = createOptions(categoryOptions);
-
     elements.apiUrl.value = initialForm.apiUrl;
     elements.apiKey.value = initialForm.apiKey;
     elements.customModelName.value = initialForm.customModelName;
     elements.caseLimit.value = initialForm.caseLimit;
-    elements.datasetSubsetSelect.value = initialForm.datasetSubset;
+    elements.attackStrategySelect.innerHTML = createOptions(attackStrategyOptions);
+    elements.attackStrategySelect.value = initialForm.attackStrategy;
     elements.judgeMode.value = initialForm.judgeMode;
     elements.judgeApiUrl.value = initialForm.judgeApiUrl;
     elements.judgeApiKey.value = initialForm.judgeApiKey;
     elements.judgeModelName.value = initialForm.judgeModelName;
     renderJudgeConfigArea();
+  }
+
+  function renderFilterOptions(select, values, allLabel) {
+    select.innerHTML = [
+      `<option value="all">${escapeHtml(allLabel)}</option>`,
+      ...values.map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`)
+    ].join("");
+  }
+
+  async function renderJailbreakBenchFilters() {
+    const { currentDataset } = store.getState();
+    if (currentDataset !== "jailbreakbench") {
+      return;
+    }
+
+    const previousCategory = elements.categoryFilter.value || "all";
+    const loaded = await loadBenchmarkCases("jailbreakbench", initialForm.datasetSubset);
+    const categories = [...new Set(loaded.records.map((record) => record.category))]
+      .filter((value) => value && value !== "-")
+      .sort((left, right) => left.localeCompare(right));
+
+    renderFilterOptions(elements.categoryFilter, categories, "全部危害类别");
+
+    elements.categoryFilter.value = categories.includes(previousCategory) ? previousCategory : "all";
   }
 
   function renderJudgeConfigArea() {
@@ -185,6 +205,9 @@ export function bootstrapApp() {
       currentDataset !== "jailbreakbench"
     );
     renderJudgeConfigArea();
+    renderJailbreakBenchFilters().catch((error) => {
+      addLog(`JailbreakBench 筛选项加载失败: ${error.message}`);
+    });
   }
 
   function renderResults(results) {
@@ -193,7 +216,7 @@ export function bootstrapApp() {
       <div class="stat-card"><div class="stat-value">${summary.total}</div><div class="stat-label">总用例数</div></div>
       <div class="stat-card"><div class="stat-value score-safe">${summary.safe}</div><div class="stat-label">安全拒绝</div></div>
       <div class="stat-card"><div class="stat-value score-unsafe">${summary.unsafe}</div><div class="stat-label">越狱成功</div></div>
-      <div class="stat-card"><div class="stat-value">${summary.avgScore.toFixed(1)}</div><div class="stat-label">平均得分</div></div>
+      <div class="stat-card"><div class="stat-value score-ambiguous">${summary.ambiguous}</div><div class="stat-label">需复核</div></div>
     `;
 
     elements.resultTableBody.innerHTML = results
@@ -235,13 +258,19 @@ export function bootstrapApp() {
     if (datasetId !== "jailbreakbench") {
       return null;
     }
-    return elements.datasetSubsetSelect.value;
+    return initialForm.datasetSubset;
   }
 
   function collectEvaluationOptions() {
     return {
       limit: Number(elements.caseLimit.value || 20),
       temperature: 0,
+      maxTokens: 2048,
+      disableReasoning: true,
+      attackStrategy: elements.attackStrategySelect.value,
+      filters: {
+        category: elements.categoryFilter.value
+      },
       judge: {
         mode: elements.judgeMode.value,
         apiUrl: elements.judgeApiUrl.value.trim() || elements.apiUrl.value.trim(),
@@ -329,6 +358,12 @@ export function bootstrapApp() {
     addLog(
       `评测参数: 最大样本 ${evaluationOptions.limit}`
     );
+    if (currentDataset === "jailbreakbench") {
+      addLog(
+        `筛选条件: 危害类别 ${evaluationOptions.filters.category || "all"}`
+      );
+      addLog(`攻击策略: ${evaluationOptions.attackStrategy}`);
+    }
     addLog(`判分方式: ${evaluationOptions.judge.mode}`);
     addLog(modelConfig.apiKey ? "检测到 API 密钥" : "未提供 API 密钥，默认视为本地或免鉴权服务");
     if (evaluationOptions.judge.mode === "official_jbb") {
@@ -475,6 +510,9 @@ export function bootstrapApp() {
   renderPromptList();
   renderCustomDataStats();
   renderDatasetArea();
+  renderJailbreakBenchFilters().catch((error) => {
+    addLog(`JailbreakBench 筛选项加载失败: ${error.message}`);
+  });
   bindEvents();
   addLog("SafeCompass Framework 已初始化");
 }

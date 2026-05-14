@@ -1,5 +1,9 @@
 import { getBenchmark } from "../benchmarks/registry.js";
 
+function normalizeTaxonomyValue(value) {
+  return String(value || "-").replace(/\s+/g, " ").trim() || "-";
+}
+
 function normalizeJailbreakBenchRecord(record, index, subset) {
   const prompt =
     record.prompt ??
@@ -17,16 +21,11 @@ function normalizeJailbreakBenchRecord(record, index, subset) {
     prompt,
     goal: record.goal || record.Goal || prompt,
     source: record.source || record.Source || "JailbreakBench",
-    attack_type:
-      record.attack_type ||
-      record.attack ||
-      record.category_name ||
-      record.jailbreak ||
-      record.behavior ||
-      record.Behavior ||
-      "-",
-    category:
-      record.category || record.Category || record.harm_category || record.topic || "-",
+    attack_type: "-",
+    behavior: normalizeTaxonomyValue(record.behavior || record.Behavior),
+    category: normalizeTaxonomyValue(
+      record.category || record.Category || record.harm_category || record.topic
+    ),
     behavior_type: record.behavior_type || record.behaviorType || subset,
     raw: record
   };

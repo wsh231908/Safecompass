@@ -36,7 +36,7 @@
                     class="field-control"
                     id="apiUrl"
                     type="text"
-                    placeholder="https://api.openai.com/v1"
+                    placeholder="https://api.moark.com/v1"
                   />
                   <span class="field-hint">兼容 OpenAI 风格接口，后续可接 vLLM / 本地网关</span>
                 </label>
@@ -92,13 +92,8 @@
               <section class="custom-panel hidden" id="jailbreakBenchOptions">
                 <div class="grid two-col">
                   <label class="field">
-                    <span class="field-label">JailbreakBench 子集</span>
-                    <select class="field-control" id="datasetSubsetSelect">
-                      <option value="harmful">harmful</option>
-                      <option value="benign">benign</option>
-                      <option value="behaviors">all behaviors</option>
-                      <option value="judge_comparison">judge_comparison</option>
-                    </select>
+                    <span class="field-label">攻击策略</span>
+                    <select class="field-control" id="attackStrategySelect"></select>
                   </label>
                   <label class="field">
                     <span class="field-label">判分方式</span>
@@ -112,10 +107,6 @@
 
                 <div class="grid two-col">
                   <label class="field">
-                    <span class="field-label">攻击类型筛选</span>
-                    <select class="field-control" id="attackTypeFilter"></select>
-                  </label>
-                  <label class="field">
                     <span class="field-label">危害类别筛选</span>
                     <select class="field-control" id="categoryFilter"></select>
                   </label>
@@ -128,7 +119,7 @@
                       class="field-control"
                       id="judgeApiUrl"
                       type="text"
-                      placeholder="https://api.together.xyz/v1"
+                      placeholder="https://api.moark.com/v1"
                     />
                   </label>
                   <label class="field">
@@ -146,7 +137,7 @@
                       type="text"
                       placeholder="留空按 JBB 官方流程自动选择 Llama-3 judge"
                     />
-                    <span class="field-hint">harmful 使用 Llama-3-70B，benign 使用 Llama-3-8B</span>
+                    <span class="field-hint">harmful 子集默认使用 Llama-3-70B judge</span>
                   </label>
                 </div>
               </section>
