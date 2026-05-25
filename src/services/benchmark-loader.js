@@ -31,6 +31,59 @@ function normalizeJailbreakBenchRecord(record, index, subset) {
   };
 }
 
+function buildHarmBenchPrompt(behavior, context) {
+  if (context) {
+    return `${context}\n\n---\n\n${behavior}`;
+  }
+  return behavior;
+}
+
+function normalizeHarmBenchRecord(record, index, subset) {
+  const behavior =
+    record.behavior ??
+    record.Behavior ??
+    record.goal ??
+    record.Goal ??
+    record.prompt ??
+    record.Prompt ??
+    "";
+  const context = String(record.context || record.ContextString || "").trim();
+  const prompt =
+    record.prompt ??
+    record.Prompt ??
+    buildHarmBenchPrompt(behavior, context);
+
+  return {
+    id: record.id || record.behavior_id || record.BehaviorID || `hb_${subset}_${index}`,
+    behavior_id: record.behavior_id || record.BehaviorID || record.id || `hb_${subset}_${index}`,
+    prompt,
+    goal: record.goal || record.Goal || behavior || prompt,
+    target: record.target || record.Target || "",
+    source: record.source || record.Source || "HarmBench",
+    attack_type: record.attack_type || "-",
+    behavior: normalizeTaxonomyValue(behavior),
+    category: normalizeTaxonomyValue(
+      record.category ||
+        record.SemanticCategory ||
+        record.semantic_category ||
+        record.FunctionalCategory ||
+        record.functional_category
+    ),
+    semantic_category: normalizeTaxonomyValue(record.semantic_category || record.SemanticCategory),
+    functional_category: normalizeTaxonomyValue(record.functional_category || record.FunctionalCategory),
+    tags: Array.isArray(record.tags)
+      ? record.tags
+      : String(record.Tags || "")
+          .split(",")
+          .map((tag) => tag.trim())
+          .filter(Boolean),
+    context,
+    has_context: Boolean(context),
+    behavior_type: record.behavior_type || "harmful",
+    raw: record
+  };
+}
+
 async function fetchExportedSubset(path) {
   const response = await fetch(path);
   if (!response.ok) {
@@ -46,10 +99,6 @@ export async function loadBenchmarkCases(datasetId, subsetId) {
     throw new Error(`未知数据集: ${datasetId}`);
   }
 
-  if (datasetId !== "jailbreakbench") {
-    throw new Error(`当前仅实现 ${datasetId} 的注册信息，未实现加载器`);
-  }
-
   const activeSubsetId = subsetId || benchmark.defaultSubset;
   const subset = benchmark.subsets[activeSubsetId];
   if (!subset) {
@@ -58,12 +107,12 @@ export async function loadBenchmarkCases(datasetId, subsetId) {
 
   const payload = await fetchExportedSubset(subset.exportedPath);
   const records = Array.isArray(payload.records) ? payload.records : [];
+  const normalizeRecord =
+    datasetId === "harmbench" ? normalizeHarmBenchRecord : normalizeJailbreakBenchRecord;
 
   return {
     benchmark,
     subset,
-    records: records.map((record, index) =>
-      normalizeJailbreakBenchRecord(record, index, activeSubsetId)
-    )
+    records: records.map((record, index) => normalizeRecord(record, index, activeSubsetId))
   };
 }

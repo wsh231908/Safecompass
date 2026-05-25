@@ -16,11 +16,9 @@ from urllib.request import urlopen
 DATASET_ID = "JailbreakBench/JBB-Behaviors"
 DATASET_VIEWER_BASE = "https://datasets-server.huggingface.co"
 DEFAULT_OUTPUT_DIR = Path("data/benchmarks/jailbreakbench")
-SUPPORTED_SUBSETS = ("harmful", "benign", "judge_comparison")
+SUPPORTED_SUBSETS = ("harmful",)
 DEFAULT_SPLITS = {
     "harmful": "harmful",
-    "benign": "benign",
-    "judge_comparison": "test",
 }
 PAGE_SIZE = 100
 
@@ -79,12 +77,11 @@ def request_json(path: str, params: dict[str, Any], timeout: int) -> dict[str, A
 
 
 def fetch_rows(subset: str, split: str, offset: int, length: int, timeout: int) -> dict[str, Any]:
-    config = "behaviors" if subset in {"harmful", "benign"} else subset
     return request_json(
         "/rows",
         {
             "dataset": DATASET_ID,
-            "config": config,
+            "config": "behaviors",
             "split": split,
             "offset": offset,
             "length": length,

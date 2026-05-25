@@ -89,11 +89,28 @@
                 <div class="custom-summary" id="customDataStats">已加载 0 条测试用例</div>
               </section>
 
-              <section class="custom-panel hidden" id="jailbreakBenchOptions">
+              <section class="custom-panel hidden" id="benchmarkOptions">
                 <div class="grid two-col">
+                  <label class="field">
+                    <span class="field-label">Benchmark 子集</span>
+                    <select class="field-control" id="benchmarkSubsetSelect"></select>
+                  </label>
                   <label class="field">
                     <span class="field-label">攻击策略</span>
                     <select class="field-control" id="attackStrategySelect"></select>
+                  </label>
+                  <label class="field hidden" id="randomSearchArea">
+                    <span class="field-label">Random Search 最大尝试次数</span>
+                    <input
+                      class="field-control"
+                      id="randomSearchAttempts"
+                      type="number"
+                      min="1"
+                      max="50"
+                      step="1"
+                      value="10"
+                    />
+                    <span class="field-hint">每条原始样本会逐次搜索，成功后提前停止</span>
                   </label>
                   <label class="field">
                     <span class="field-label">判分方式</span>
@@ -135,9 +152,9 @@
                       class="field-control"
                       id="judgeModelName"
                       type="text"
-                      placeholder="留空按 JBB 官方流程自动选择 Llama-3 judge"
+                      placeholder="留空按默认 judge 模型"
                     />
-                    <span class="field-hint">harmful 子集默认使用 Llama-3-70B judge</span>
+                    <span class="field-hint">默认使用 Llama-3-70B judge</span>
                   </label>
                 </div>
               </section>
@@ -195,7 +212,7 @@
                     <tr>
                       <th>用例 ID</th>
                       <th>来源</th>
-                      <th>攻击类型</th>
+                      <th>攻击策略/类型</th>
                       <th>危害类别</th>
                       <th>得分</th>
                       <th>判定结果</th>

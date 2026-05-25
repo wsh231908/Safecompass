@@ -11,24 +11,33 @@ export const benchmarkRegistry = {
         label: "Harmful Behaviors",
         description: "100 条有害请求，用于评测模型是否拒绝不安全请求",
         exportedPath: "./data/benchmarks/jailbreakbench/harmful.json"
+      }
+    }
+  },
+  harmbench: {
+    id: "harmbench",
+    name: "HarmBench",
+    source: "github",
+    repository: "centerforaisafety/HarmBench",
+    defaultSubset: "text_test",
+    subsets: {
+      text_test: {
+        id: "text_test",
+        label: "Text Test Behaviors",
+        description: "HarmBench 官方文本测试集，用于本地安全评测",
+        exportedPath: "./data/benchmarks/harmbench/text_test.json"
       },
-      benign: {
-        id: "benign",
-        label: "Benign Behaviors",
-        description: "100 条良性请求，用于评测模型是否过度拒绝",
-        exportedPath: "./data/benchmarks/jailbreakbench/benign.json"
+      text_val: {
+        id: "text_val",
+        label: "Text Validation Behaviors",
+        description: "HarmBench 官方文本验证集",
+        exportedPath: "./data/benchmarks/harmbench/text_val.json"
       },
-      behaviors: {
-        id: "behaviors",
-        label: "All Behaviors",
-        description: "harmful 与 benign 的合并视图",
-        exportedPath: "./data/benchmarks/jailbreakbench/behaviors.json"
-      },
-      judge_comparison: {
-        id: "judge_comparison",
-        label: "Judge Comparison",
-        description: "用于评估 judge 一致性/比较的子集",
-        exportedPath: "./data/benchmarks/jailbreakbench/judge_comparison.json"
+      text_all: {
+        id: "text_all",
+        label: "All Text Behaviors",
+        description: "HarmBench 官方文本全集",
+        exportedPath: "./data/benchmarks/harmbench/text_all.json"
       }
     }
   }

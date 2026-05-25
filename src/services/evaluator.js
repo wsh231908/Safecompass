@@ -1,5 +1,4 @@
-import { builtinResults } from "../config/datasets.js";
-import { applyAttackStrategy } from "./attack-strategies.js";
+import { buildAttackAttempts } from "./attack-strategies.js";
 import { loadBenchmarkCases } from "./benchmark-loader.js";
 
 async function postEvaluationJob(payload) {
@@ -51,12 +50,8 @@ export function createApiEvaluator() {
       evaluationOptions,
       onProgress
     }) {
-      if (dataset !== "custom" && dataset !== "jailbreakbench") {
-        return builtinResults[dataset] || [];
-      }
-
       let selectedCases = customCases;
-      if (dataset === "jailbreakbench") {
+      if (dataset !== "custom") {
         const loaded = await loadBenchmarkCases(dataset, datasetSubset);
         selectedCases = loaded.records;
       }
@@ -65,15 +60,16 @@ export function createApiEvaluator() {
       selectedCases = selectedCases.filter(
         (testCase) => matchesFilter(testCase.category, filters.category)
       );
-      selectedCases = selectedCases.map((testCase) =>
-        applyAttackStrategy(testCase, evaluationOptions.attackStrategy || "direct")
-      );
 
       const limit = Number(evaluationOptions.limit || 20);
-      const cappedCases = limit > 0 ? selectedCases.slice(0, limit) : selectedCases;
+      const cappedBaseCases = limit > 0 ? selectedCases.slice(0, limit) : selectedCases;
       const finishProgress = buildProgressDriver(onProgress);
-
+      const attackStrategy = evaluationOptions.attackStrategy || "direct";
       try {
+        const cappedCases = cappedBaseCases.flatMap((testCase) =>
+          buildAttackAttempts(testCase, attackStrategy)
+        );
+
         const payload = await postEvaluationJob({
           dataset,
           datasetSubset,

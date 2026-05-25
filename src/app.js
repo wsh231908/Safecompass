@@ -14,8 +14,12 @@ function getInitialFormValues() {
     apiKey: "",
     customModelName: "",
     caseLimit: "20",
-    datasetSubset: "harmful",
+    datasetSubsets: {
+      jailbreakbench: "harmful",
+      harmbench: "text_test"
+    },
     attackStrategy: "direct",
+    randomSearchAttempts: "10",
     judgeMode: "official_jbb",
     judgeApiUrl: "https://api.moark.com/v1",
     judgeApiKey: "",
@@ -75,7 +79,8 @@ export function bootstrapApp() {
     judgeApiUrl: $("#judgeApiUrl"),
     judgeApiKey: $("#judgeApiKey"),
     judgeModelName: $("#judgeModelName"),
-    jailbreakBenchOptions: $("#jailbreakBenchOptions"),
+    benchmarkOptions: $("#benchmarkOptions"),
+    benchmarkSubsetSelect: $("#benchmarkSubsetSelect"),
     judgeApiArea: $("#judgeApiArea"),
     judgeConfigArea: $("#judgeConfigArea"),
     datasetTags: $("#datasetTags"),
@@ -89,6 +94,8 @@ export function bootstrapApp() {
     promptList: $("#promptList"),
     customDataStats: $("#customDataStats"),
     attackStrategySelect: $("#attackStrategySelect"),
+    randomSearchArea: $("#randomSearchArea"),
+    randomSearchAttempts: $("#randomSearchAttempts"),
     categoryFilter: $("#categoryFilter"),
     caseLimit: $("#caseLimit"),
     runBtn: $("#runBtn"),
@@ -120,10 +127,12 @@ export function bootstrapApp() {
     elements.caseLimit.value = initialForm.caseLimit;
     elements.attackStrategySelect.innerHTML = createOptions(attackStrategyOptions);
     elements.attackStrategySelect.value = initialForm.attackStrategy;
+    elements.randomSearchAttempts.value = initialForm.randomSearchAttempts;
     elements.judgeMode.value = initialForm.judgeMode;
     elements.judgeApiUrl.value = initialForm.judgeApiUrl;
     elements.judgeApiKey.value = initialForm.judgeApiKey;
     elements.judgeModelName.value = initialForm.judgeModelName;
+    renderAttackStrategyConfigArea();
     renderJudgeConfigArea();
   }
 
@@ -134,14 +143,54 @@ export function bootstrapApp() {
     ].join("");
   }
 
-  async function renderJailbreakBenchFilters() {
+  function isRegisteredBenchmark(datasetId) {
+    return Boolean(getBenchmark(datasetId));
+  }
+
+  function getSelectedDatasetSubset(datasetId) {
+    const benchmark = getBenchmark(datasetId);
+    if (!benchmark) {
+      return null;
+    }
+    return elements.benchmarkSubsetSelect.value || benchmark.defaultSubset;
+  }
+
+  function getBenchmarkSourceLabel(benchmark) {
+    return benchmark.hfDataset || benchmark.repository || benchmark.name;
+  }
+
+  function renderBenchmarkSubsetSelect() {
     const { currentDataset } = store.getState();
-    if (currentDataset !== "jailbreakbench") {
+    const benchmark = getBenchmark(currentDataset);
+    if (!benchmark) {
+      elements.benchmarkSubsetSelect.innerHTML = "";
       return;
     }
 
+    const previousSubset =
+      elements.benchmarkSubsetSelect.value ||
+      initialForm.datasetSubsets[currentDataset] ||
+      benchmark.defaultSubset;
+    const options = Object.values(benchmark.subsets).map((subset) => ({
+      value: subset.id,
+      label: subset.label
+    }));
+    elements.benchmarkSubsetSelect.innerHTML = createOptions(options);
+    elements.benchmarkSubsetSelect.value = benchmark.subsets[previousSubset]
+      ? previousSubset
+      : benchmark.defaultSubset;
+  }
+
+  async function renderBenchmarkFilters() {
+    const { currentDataset } = store.getState();
+    const benchmark = getBenchmark(currentDataset);
+    if (!benchmark) {
+      return;
+    }
+
+    const activeSubset = getSelectedDatasetSubset(currentDataset);
     const previousCategory = elements.categoryFilter.value || "all";
-    const loaded = await loadBenchmarkCases("jailbreakbench", initialForm.datasetSubset);
+    const loaded = await loadBenchmarkCases(currentDataset, activeSubset);
     const categories = [...new Set(loaded.records.map((record) => record.category))]
       .filter((value) => value && value !== "-")
       .sort((left, right) => left.localeCompare(right));
@@ -155,6 +204,13 @@ export function bootstrapApp() {
     const officialJudge = elements.judgeMode.value === "official_jbb";
     elements.judgeApiArea.classList.toggle("hidden", !officialJudge);
     elements.judgeConfigArea.classList.toggle("hidden", !officialJudge);
+  }
+
+  function renderAttackStrategyConfigArea() {
+    elements.randomSearchArea.classList.toggle(
+      "hidden",
+      elements.attackStrategySelect.value !== "random_search"
+    );
   }
 
   function renderDatasetTags() {
@@ -199,14 +255,18 @@ export function bootstrapApp() {
 
   function renderDatasetArea() {
     const { currentDataset } = store.getState();
+    const benchmarkVisible = isRegisteredBenchmark(currentDataset);
     elements.customDatasetArea.classList.toggle("hidden", currentDataset !== "custom");
-    elements.jailbreakBenchOptions.classList.toggle(
+    elements.benchmarkOptions.classList.toggle(
       "hidden",
-      currentDataset !== "jailbreakbench"
+      !benchmarkVisible
     );
+    if (benchmarkVisible) {
+      renderBenchmarkSubsetSelect();
+    }
     renderJudgeConfigArea();
-    renderJailbreakBenchFilters().catch((error) => {
-      addLog(`JailbreakBench 筛选项加载失败: ${error.message}`);
+    renderBenchmarkFilters().catch((error) => {
+      addLog(`Benchmark 筛选项加载失败: ${error.message}`);
     });
   }
 
@@ -217,6 +277,7 @@ export function bootstrapApp() {
       <div class="stat-card"><div class="stat-value score-safe">${summary.safe}</div><div class="stat-label">安全拒绝</div></div>
       <div class="stat-card"><div class="stat-value score-unsafe">${summary.unsafe}</div><div class="stat-label">越狱成功</div></div>
       <div class="stat-card"><div class="stat-value score-ambiguous">${summary.ambiguous}</div><div class="stat-label">需复核</div></div>
+      <div class="stat-card"><div class="stat-value score-unsafe">${summary.behaviorAsr.toFixed(1)}%</div><div class="stat-label">原始样本 ASR</div></div>
     `;
 
     elements.resultTableBody.innerHTML = results
@@ -232,7 +293,7 @@ export function bootstrapApp() {
           <tr>
             <td>${escapeHtml(item.id)}</td>
             <td>${escapeHtml(item.source)}</td>
-            <td>${escapeHtml(item.attack_type || "-")}</td>
+            <td>${escapeHtml(item.attack_strategy_label || item.attack_type || "-")}</td>
             <td>${escapeHtml(item.category || "-")}</td>
             <td class="${scoreClass}">${escapeHtml(item.score)}</td>
             <td class="${scoreClass}">${escapeHtml(item.result)}</td>
@@ -254,13 +315,6 @@ export function bootstrapApp() {
     };
   }
 
-  function getSelectedDatasetSubset(datasetId) {
-    if (datasetId !== "jailbreakbench") {
-      return null;
-    }
-    return initialForm.datasetSubset;
-  }
-
   function collectEvaluationOptions() {
     return {
       limit: Number(elements.caseLimit.value || 20),
@@ -268,6 +322,11 @@ export function bootstrapApp() {
       maxTokens: 2048,
       disableReasoning: true,
       attackStrategy: elements.attackStrategySelect.value,
+      randomSearch: {
+        maxAttempts: Number(elements.randomSearchAttempts.value || initialForm.randomSearchAttempts),
+        stopOnSuccess: true,
+        keepAllAttempts: true
+      },
       filters: {
         category: elements.categoryFilter.value
       },
@@ -329,7 +388,7 @@ export function bootstrapApp() {
       return;
     }
     if (
-      currentDataset === "jailbreakbench" &&
+      isRegisteredBenchmark(currentDataset) &&
       evaluationOptions.judge.mode === "official_jbb" &&
       !evaluationOptions.judge.apiUrl
     ) {
@@ -358,11 +417,14 @@ export function bootstrapApp() {
     addLog(
       `评测参数: 最大样本 ${evaluationOptions.limit}`
     );
-    if (currentDataset === "jailbreakbench") {
+    if (isRegisteredBenchmark(currentDataset)) {
       addLog(
         `筛选条件: 危害类别 ${evaluationOptions.filters.category || "all"}`
       );
       addLog(`攻击策略: ${evaluationOptions.attackStrategy}`);
+      if (evaluationOptions.attackStrategy === "random_search") {
+        addLog(`Random Search 最大尝试次数: ${evaluationOptions.randomSearch.maxAttempts}`);
+      }
     }
     addLog(`判分方式: ${evaluationOptions.judge.mode}`);
     addLog(modelConfig.apiKey ? "检测到 API 密钥" : "未提供 API 密钥，默认视为本地或免鉴权服务");
@@ -370,14 +432,14 @@ export function bootstrapApp() {
       addLog(
         evaluationOptions.judge.modelName
           ? `Judge 模型: ${evaluationOptions.judge.modelName}`
-          : "Judge 模型: 按 JailbreakBench 官方流程自动选择 Llama-3 judge"
+          : "Judge 模型: 使用默认 Llama-3 judge"
       );
     }
 
-    if (currentDataset === "jailbreakbench") {
+    if (isRegisteredBenchmark(currentDataset)) {
       const benchmark = getBenchmark(currentDataset);
       addLog(
-        `JailbreakBench 已接入，来源 ${benchmark.hfDataset}，当前子集 ${datasetSubset || benchmark.defaultSubset}`
+        `${benchmark.name} 已接入，来源 ${getBenchmarkSourceLabel(benchmark)}，当前子集 ${datasetSubset || benchmark.defaultSubset}`
       );
     }
 
@@ -485,6 +547,12 @@ export function bootstrapApp() {
     });
 
     elements.runBtn.addEventListener("click", handleRun);
+    elements.attackStrategySelect.addEventListener("change", renderAttackStrategyConfigArea);
+    elements.benchmarkSubsetSelect.addEventListener("change", () => {
+      renderBenchmarkFilters().catch((error) => {
+        addLog(`Benchmark 筛选项加载失败: ${error.message}`);
+      });
+    });
     elements.judgeMode.addEventListener("change", renderJudgeConfigArea);
     elements.resetBtn.addEventListener("click", resetWorkspace);
     elements.clearLogBtn.addEventListener("click", () => {
@@ -510,9 +578,6 @@ export function bootstrapApp() {
   renderPromptList();
   renderCustomDataStats();
   renderDatasetArea();
-  renderJailbreakBenchFilters().catch((error) => {
-    addLog(`JailbreakBench 筛选项加载失败: ${error.message}`);
-  });
   bindEvents();
   addLog("SafeCompass Framework 已初始化");
 }
