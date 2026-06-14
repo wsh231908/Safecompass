@@ -15,6 +15,10 @@
           <div class="brand-subtitle">大模型安全评测框架原型</div>
         </div>
       </div>
+      <nav class="nav">
+        <a href="./index.html">评测平台</a>
+        <a href="./chat.html">Llama 对话</a>
+      </nav>
     </header>
 
     <main class="page-shell">
@@ -31,31 +35,44 @@
             <div class="card-body">
               <div class="grid two-col">
                 <label class="field">
-                  <span class="field-label">API Base URL</span>
-                  <input
-                    class="field-control"
-                    id="apiUrl"
-                    type="text"
-                    placeholder="https://api.moark.com/v1"
-                  />
-                  <span class="field-hint">兼容 OpenAI 风格接口，后续可接 vLLM / 本地网关</span>
+                  <span class="field-label">被测试的大模型</span>
+                  <select class="field-control" id="modelPreset">
+                    <option value="llama">llama</option>
+                    <option value="custom">自定义 OpenAI-compatible 模型</option>
+                  </select>
+                  <span class="field-hint">选择 llama 时自动使用本地 vLLM 服务</span>
                 </label>
               </div>
 
-              <div class="grid two-col">
-                <label class="field">
-                  <span class="field-label">API 密钥</span>
-                  <input class="field-control" id="apiKey" type="password" placeholder="sk-..." />
-                </label>
-                <label class="field">
-                  <span class="field-label">模型名称</span>
-                  <input
-                    class="field-control"
-                    id="customModelName"
-                    type="text"
-                    placeholder="例如：gpt-4o-mini / deepseek-chat"
-                  />
-                </label>
+              <div id="modelApiConfigArea">
+                <div class="grid two-col">
+                  <label class="field">
+                    <span class="field-label">API Base URL</span>
+                    <input
+                      class="field-control"
+                      id="apiUrl"
+                      type="text"
+                      placeholder="https://api.moark.com/v1"
+                    />
+                    <span class="field-hint">兼容 OpenAI 风格接口，后续可接 vLLM / 本地网关</span>
+                  </label>
+                </div>
+
+                <div class="grid two-col">
+                  <label class="field">
+                    <span class="field-label">API 密钥</span>
+                    <input class="field-control" id="apiKey" type="password" placeholder="sk-..." />
+                  </label>
+                  <label class="field">
+                    <span class="field-label">模型名称</span>
+                    <input
+                      class="field-control"
+                      id="customModelName"
+                      type="text"
+                      placeholder="例如：gpt-4o-mini / deepseek-chat"
+                    />
+                  </label>
+                </div>
               </div>
 
               <div class="field">
@@ -64,6 +81,30 @@
               </div>
 
               <section class="custom-panel hidden" id="customDatasetArea">
+                <div class="subcard format-card">
+                  <div class="subcard-title">自定义数据集格式</div>
+                  <p class="helper-text">
+                    JSON 支持数组或包含 `cases` 数组的对象；CSV 第一行必须是字段名。每条用例至少需要一个文本字段：
+                    `prompt`、`goal`、`request`、`question`、`instruction`、`text` 或 `content`。
+                  </p>
+                  <p class="helper-text">
+                    可选字段包括 `id`、`category`、`attack_type`、`behavior`、`behavior_type`。手动添加只需要输入测试 prompt，后台会自动补齐
+                    `id`、`goal`、`source`、`category`、`behavior_type` 等评测字段。
+                  </p>
+                  <p class="helper-text">
+                    自定义数据集评测固定使用 JailbreakBench Llama judge：先调用被测模型生成回复，再调用本地 Llama
+                    `meta-llama/Llama-3-70b-chat-hf` 对“原始请求 + 模型回复”判定 `safe` 或 `unsafe`，不使用简单模式匹配。
+                  </p>
+                  <pre class="format-code">[
+  {
+    "id": "custom_001",
+    "prompt": "需要评测的原始问题",
+    "category": "可选危害类别",
+    "behavior_type": "custom"
+  }
+]</pre>
+                </div>
+
                 <div class="grid two-col">
                   <div class="subcard">
                     <div class="subcard-title">上传 JSON / CSV</div>
@@ -73,7 +114,7 @@
                       <span class="muted" id="fileName">未选择文件</span>
                       <span class="pill" id="filePreview"></span>
                     </div>
-                    <p class="helper-text">JSON 支持数组或 `cases` 数组；CSV 需包含 `prompt` 列。</p>
+                    <p class="helper-text">上传后会先在前端做字段识别，评测前服务端会再次规范化。</p>
                   </div>
 
                   <div class="subcard">
@@ -95,31 +136,6 @@
                     <span class="field-label">Benchmark 子集</span>
                     <select class="field-control" id="benchmarkSubsetSelect"></select>
                   </label>
-                  <label class="field">
-                    <span class="field-label">攻击策略</span>
-                    <select class="field-control" id="attackStrategySelect"></select>
-                  </label>
-                  <label class="field hidden" id="randomSearchArea">
-                    <span class="field-label">Random Search 最大尝试次数</span>
-                    <input
-                      class="field-control"
-                      id="randomSearchAttempts"
-                      type="number"
-                      min="1"
-                      max="50"
-                      step="1"
-                      value="10"
-                    />
-                    <span class="field-hint">每条原始样本会逐次搜索，成功后提前停止</span>
-                  </label>
-                  <label class="field">
-                    <span class="field-label">判分方式</span>
-                    <select class="field-control" id="judgeMode">
-                      <option value="official_jbb">JailbreakBench official judge</option>
-                      <option value="refusal_pattern">Refusal pattern fallback</option>
-                    </select>
-                    <span class="field-hint">官方流程会先调用被测模型，再调用独立 judge 模型复判</span>
-                  </label>
                 </div>
 
                 <div class="grid two-col">
@@ -129,34 +145,17 @@
                   </label>
                 </div>
 
-                <div class="grid two-col" id="judgeApiArea">
-                  <label class="field">
-                    <span class="field-label">Judge API Base URL</span>
-                    <input
-                      class="field-control"
-                      id="judgeApiUrl"
-                      type="text"
-                      placeholder="https://api.moark.com/v1"
-                    />
-                  </label>
-                  <label class="field">
-                    <span class="field-label">Judge API 密钥</span>
-                    <input class="field-control" id="judgeApiKey" type="password" placeholder="可留空复用被测模型密钥" />
-                  </label>
-                </div>
+              </section>
 
-                <div class="grid two-col" id="judgeConfigArea">
-                  <label class="field">
-                    <span class="field-label">Judge 模型名称</span>
-                    <input
-                      class="field-control"
-                      id="judgeModelName"
-                      type="text"
-                      placeholder="留空按默认 judge 模型"
-                    />
-                    <span class="field-hint">默认使用 Llama-3-70B judge</span>
-                  </label>
-                </div>
+              <section class="custom-panel" id="attackOptions">
+                <label class="field attack-method-field">
+                  <span class="field-label">攻击方法</span>
+                  <select class="field-control" id="attackStrategySelect">
+                    <option value="direct">Direct Request</option>
+                    <option value="human_jailbreaks">Human Jailbreaks</option>
+                    <option value="jbc">Jailbreak Chat</option>
+                  </select>
+                </label>
               </section>
 
               <div class="grid two-col">
@@ -212,7 +211,7 @@
                     <tr>
                       <th>用例 ID</th>
                       <th>来源</th>
-                      <th>攻击策略/类型</th>
+                      <th>攻击方法</th>
                       <th>危害类别</th>
                       <th>得分</th>
                       <th>判定结果</th>
@@ -221,6 +220,26 @@
                   <tbody id="resultTableBody"></tbody>
                 </table>
               </div>
+              <section class="visualization-panel">
+                <div class="visualization-toolbar">
+                  <div>
+                    <h3>数据可视化</h3>
+                    <p>选择要呈现的图表</p>
+                  </div>
+                  <label class="field compact-chart-field">
+                    <span class="field-label">图表类型</span>
+                    <select class="field-control" id="chartTypeSelect">
+                      <option value="category_rank_asr">危害类别 ASR 排名柱状图</option>
+                      <option value="model_category_heatmap">模型 × 危害类别 ASR</option>
+                      <option value="model_radar">模型风险雷达图</option>
+                      <option value="success_pareto">攻击成功样本 Pareto 图</option>
+                    </select>
+                  </label>
+                </div>
+                <div class="plot-frame">
+                  <canvas id="resultChartCanvas" width="1120" height="620"></canvas>
+                </div>
+              </section>
             </div>
           </section>
         </div>

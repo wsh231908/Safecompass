@@ -1,6 +1,11 @@
 node_modules/
+.venv/
+.venv-vllm/
 .env
 __pycache__/
+logs/
+*.log
+*.pid
 dist/
 build/
 .DS_Store

@@ -1,0 +1,23 @@
+[Unit]
+Description=SafeCompass web platform
+Wants=network-online.target safecompass-llama.service
+After=network-online.target safecompass-llama.service
+
+[Service]
+Type=simple
+User=u2023202105
+Group=u2023202105
+WorkingDirectory=/home/u2023202105/Safecompass
+Environment=PATH=/home/u2023202105/.nvm/versions/node/v22.22.3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+Environment=NODE_ENV=production
+Environment=PORT=4173
+EnvironmentFile=-/etc/safecompass/safecompass.env
+ExecStart=/home/u2023202105/.nvm/versions/node/v22.22.3/bin/node /home/u2023202105/Safecompass/server.js
+Restart=always
+RestartSec=5
+KillSignal=SIGTERM
+TimeoutStopSec=30
+SyslogIdentifier=safecompass
+
+[Install]
+WantedBy=multi-user.target

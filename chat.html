@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SafeCompass Llama Chat</title>
+    <link rel="stylesheet" href="./src/styles/main.css" />
+  </head>
+  <body>
+    <header class="header">
+      <div class="brand">
+        <div class="brand-mark">SC</div>
+        <div>
+          <div class="brand-title">SafeCompass Framework</div>
+          <div class="brand-subtitle">本地 Llama-3-70B 对话</div>
+        </div>
+      </div>
+      <nav class="nav">
+        <a href="./index.html">评测平台</a>
+        <a href="./chat.html">Llama 对话</a>
+      </nav>
+    </header>
+
+    <main class="page-shell chat-page">
+      <section class="card chat-card">
+        <div class="card-header">
+          <div>
+            <p class="section-kicker">Local model</p>
+            <h2>Llama-3-70B Chat</h2>
+          </div>
+          <span class="badge" id="chatStatus">检查中</span>
+        </div>
+
+        <div class="card-body chat-body">
+          <div class="chat-toolbar">
+            <label class="field compact-field">
+              <span class="field-label">Temperature</span>
+              <input
+                class="field-control"
+                id="temperatureInput"
+                type="number"
+                min="0"
+                max="2"
+                step="0.1"
+                value="0.7"
+              />
+            </label>
+            <label class="field compact-field">
+              <span class="field-label">Max tokens</span>
+              <input
+                class="field-control"
+                id="maxTokensInput"
+                type="number"
+                min="1"
+                max="512"
+                step="1"
+                value="512"
+              />
+            </label>
+            <button class="btn btn-secondary" id="clearChatBtn" type="button">清空</button>
+          </div>
+
+          <div class="chat-messages" id="chatMessages"></div>
+
+          <form class="chat-composer" id="chatForm">
+            <textarea
+              class="field-control chat-input"
+              id="chatInput"
+              rows="3"
+              placeholder="输入你想问本地 Llama 的问题..."
+            ></textarea>
+            <button class="btn btn-primary" id="sendChatBtn" type="submit">发送</button>
+          </form>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="./src/chat.js"></script>
+  </body>
+</html>

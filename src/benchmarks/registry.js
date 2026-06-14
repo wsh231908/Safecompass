@@ -26,18 +26,6 @@ export const benchmarkRegistry = {
         label: "Text Test Behaviors",
         description: "HarmBench 官方文本测试集，用于本地安全评测",
         exportedPath: "./data/benchmarks/harmbench/text_test.json"
-      },
-      text_val: {
-        id: "text_val",
-        label: "Text Validation Behaviors",
-        description: "HarmBench 官方文本验证集",
-        exportedPath: "./data/benchmarks/harmbench/text_val.json"
-      },
-      text_all: {
-        id: "text_all",
-        label: "All Text Behaviors",
-        description: "HarmBench 官方文本全集",
-        exportedPath: "./data/benchmarks/harmbench/text_all.json"
       }
     }
   }

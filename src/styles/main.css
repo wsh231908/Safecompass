@@ -199,6 +199,21 @@ a {
   font-size: 0.84rem;
 }
 
+.badge[data-kind="ready"] {
+  color: var(--safe);
+  background: rgba(12, 138, 96, 0.1);
+}
+
+.badge[data-kind="working"] {
+  color: var(--warning);
+  background: rgba(197, 125, 16, 0.12);
+}
+
+.badge[data-kind="error"] {
+  color: var(--danger);
+  background: rgba(217, 72, 95, 0.12);
+}
+
 .grid {
   display: grid;
   gap: 18px;
@@ -276,6 +291,27 @@ a {
   border-radius: var(--radius-md);
   background: rgba(255, 255, 255, 0.72);
   border: 1px solid rgba(17, 32, 49, 0.06);
+}
+
+.attack-method-field {
+  max-width: 360px;
+  margin-bottom: 0;
+}
+
+.format-card {
+  margin-bottom: 18px;
+}
+
+.format-code {
+  margin: 12px 0 0;
+  padding: 12px;
+  overflow-x: auto;
+  border-radius: 12px;
+  background: rgba(17, 32, 49, 0.06);
+  color: var(--text);
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 0.84rem;
+  line-height: 1.5;
 }
 
 .stretch .field-control {
@@ -377,6 +413,52 @@ a {
   font-size: 0.84rem;
 }
 
+.visualization-panel {
+  margin-top: 22px;
+  padding: 16px;
+  border: 1px solid #d6dfed;
+  border-radius: 14px;
+  background: #f3f6fb;
+}
+
+.visualization-toolbar {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.visualization-toolbar h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.visualization-toolbar p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.compact-chart-field {
+  width: 360px;
+  margin-bottom: 0;
+}
+
+.plot-frame {
+  overflow-x: auto;
+  padding: 20px;
+  background: #ffffff;
+}
+
+.plot-frame canvas {
+  display: block;
+  width: 100%;
+  min-width: 760px;
+  height: 460px;
+  background: #ffffff;
+}
+
 .table-shell {
   overflow-x: auto;
 }
@@ -425,6 +507,102 @@ a {
   display: block;
 }
 
+.chat-page {
+  max-width: 1040px;
+}
+
+.chat-card {
+  min-height: calc(100vh - 132px);
+}
+
+.chat-body {
+  display: grid;
+  grid-template-rows: auto minmax(380px, 1fr) auto;
+  gap: 16px;
+}
+
+.chat-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: end;
+}
+
+.compact-field {
+  width: 180px;
+  margin-bottom: 0;
+}
+
+.chat-messages {
+  min-height: 380px;
+  max-height: calc(100vh - 360px);
+  overflow: auto;
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  padding: 16px;
+  border-radius: var(--radius-md);
+  background: rgba(17, 32, 49, 0.04);
+  border: 1px solid rgba(17, 32, 49, 0.08);
+}
+
+.chat-message {
+  max-width: min(76ch, 86%);
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.chat-message.user {
+  justify-self: end;
+  color: #fff;
+  background: linear-gradient(135deg, var(--accent) 0%, #164e63 100%);
+}
+
+.chat-message.assistant {
+  justify-self: start;
+  background: var(--surface-strong);
+  border: 1px solid rgba(17, 32, 49, 0.08);
+}
+
+.chat-message-role {
+  font-size: 0.78rem;
+  font-weight: 700;
+  opacity: 0.74;
+}
+
+.chat-message-content {
+  line-height: 1.65;
+}
+
+.empty-chat {
+  align-self: center;
+  justify-self: center;
+  text-align: center;
+  display: grid;
+  gap: 8px;
+}
+
+.empty-chat-title {
+  font-weight: 700;
+}
+
+.chat-composer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.chat-input {
+  min-height: 88px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
 @media (max-width: 1100px) {
   .hero,
   .layout,
@@ -447,12 +625,53 @@ a {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .visualization-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .visualization-toolbar {
+    display: grid;
+    align-items: stretch;
+  }
+
+  .compact-chart-field {
+    width: 100%;
+  }
+
+  .plot-frame {
+    padding: 12px;
+  }
+
+  .plot-frame canvas {
+    min-width: 680px;
+    height: 420px;
+  }
+
   .actions {
     justify-content: stretch;
   }
 
   .actions .btn,
-  .inline-actions.stretch .btn {
+  .inline-actions.stretch .btn,
+  .chat-composer .btn {
     width: 100%;
+  }
+
+  .chat-card {
+    min-height: auto;
+  }
+
+  .chat-toolbar,
+  .compact-field,
+  .chat-composer {
+    width: 100%;
+  }
+
+  .chat-composer {
+    grid-template-columns: 1fr;
+  }
+
+  .chat-message {
+    max-width: 100%;
   }
 }

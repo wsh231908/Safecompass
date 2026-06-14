@@ -18,26 +18,17 @@ async function postEvaluationJob(payload) {
   return data;
 }
 
-function buildProgressDriver(onProgress) {
-  let progress = 5;
-  onProgress(progress);
-
-  const timer = window.setInterval(() => {
-    progress = Math.min(progress + 7, 90);
-    onProgress(progress);
-  }, 700);
-
-  return () => {
-    window.clearInterval(timer);
-    onProgress(100);
-  };
-}
-
 function matchesFilter(value, selectedValue) {
   if (!selectedValue || selectedValue === "all") {
     return true;
   }
   return String(value || "-") === selectedValue;
+}
+
+function reportProgress(onProgress, progress) {
+  if (typeof onProgress === "function") {
+    onProgress(progress);
+  }
 }
 
 export function createApiEvaluator() {
@@ -50,6 +41,14 @@ export function createApiEvaluator() {
       evaluationOptions,
       onProgress
     }) {
+      reportProgress(onProgress, {
+        phase: "prepare",
+        percent: 0,
+        completed: 0,
+        total: 0,
+        message: "正在准备评测数据"
+      });
+
       let selectedCases = customCases;
       if (dataset !== "custom") {
         const loaded = await loadBenchmarkCases(dataset, datasetSubset);
@@ -63,24 +62,55 @@ export function createApiEvaluator() {
 
       const limit = Number(evaluationOptions.limit || 20);
       const cappedBaseCases = limit > 0 ? selectedCases.slice(0, limit) : selectedCases;
-      const finishProgress = buildProgressDriver(onProgress);
       const attackStrategy = evaluationOptions.attackStrategy || "direct";
-      try {
-        const cappedCases = cappedBaseCases.flatMap((testCase) =>
-          buildAttackAttempts(testCase, attackStrategy)
-        );
+      const cappedCases = cappedBaseCases.flatMap((testCase) =>
+        buildAttackAttempts(testCase, attackStrategy)
+      );
 
+      if (!cappedCases.length) {
+        reportProgress(onProgress, {
+          phase: "complete",
+          percent: 100,
+          completed: 0,
+          total: 0,
+          message: "没有符合条件的评测样本"
+        });
+        return [];
+      }
+
+      const results = [];
+      reportProgress(onProgress, {
+        phase: "run",
+        percent: 0,
+        completed: 0,
+        total: cappedCases.length,
+        message: `正在执行评测 0/${cappedCases.length}（0%）`
+      });
+
+      for (let index = 0; index < cappedCases.length; index += 1) {
+        const testCase = cappedCases[index];
         const payload = await postEvaluationJob({
           dataset,
           datasetSubset,
           modelConfig,
           evaluationOptions,
-          cases: cappedCases
+          cases: [testCase]
         });
-        return payload.results || [];
-      } finally {
-        finishProgress();
+
+        results.push(...(payload.results || []));
+        const completed = index + 1;
+        const percent = Math.round((completed / cappedCases.length) * 100);
+        reportProgress(onProgress, {
+          phase: completed === cappedCases.length ? "complete" : "run",
+          percent,
+          completed,
+          total: cappedCases.length,
+          currentId: testCase.id,
+          message: `正在执行评测 ${completed}/${cappedCases.length}（${percent}%）`
+        });
       }
+
+      return results;
     }
   };
 }

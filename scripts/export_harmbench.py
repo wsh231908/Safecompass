@@ -20,9 +20,7 @@ RAW_BASE_URL = "https://raw.githubusercontent.com/centerforaisafety/HarmBench/ma
 DEFAULT_OUTPUT_DIR = Path("data/benchmarks/harmbench")
 TEXT_TARGETS_PATH = "data/optimizer_targets/harmbench_targets_text.json"
 TEXT_SUBSETS = {
-    "text_all": "data/behavior_datasets/harmbench_behaviors_text_all.csv",
     "text_test": "data/behavior_datasets/harmbench_behaviors_text_test.csv",
-    "text_val": "data/behavior_datasets/harmbench_behaviors_text_val.csv",
 }
 
 
@@ -33,8 +31,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--subset",
         choices=(*TEXT_SUBSETS.keys(), "all"),
-        default="all",
-        help="Subset to export. Defaults to all text subsets.",
+        default="text_test",
+        help="Subset to export. Defaults to the official text test split.",
     )
     parser.add_argument(
         "--limit",
