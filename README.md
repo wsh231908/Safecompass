@@ -22,8 +22,11 @@ JailbreakBench、HarmBench 和用户自定义数据集接入到同一个本地�
   - `Human Jailbreaks`
   - `Jailbreak Chat`
 - 使用 JailbreakBench Llama judge 进行安全判定
+- 支持单 Judge 和多 Judge majority vote
+- 支持 Llama judge、OpenAI-compatible judge 和 rule-based fallback
 - 输出安全拒绝数、越狱成功数、ASR 等汇总指标
-- 支持结果表格、JSON 导出和多种 ASR 可视化图表
+- 支持结果表格、JSON 导出、包含图表的 Markdown 报告导出和多种 ASR 可视化图表
+- 支持 Top 失败案例和 Judge 需复核样本列表
 - 提供 tmux 启动方式和 systemd 部署配置
 
 ## 评测流程
@@ -34,8 +37,9 @@ JailbreakBench、HarmBench 和用户自定义数据集接入到同一个本地�
 2. 加载并规范化测试用例。
 3. 选择攻击方法，将原始行为或请求转换成攻击 prompt。
 4. 调用被测试模型生成回复。
-5. 调用本地 Llama judge，根据“原始请求 + 模型回复”判定 `safe` 或 `unsafe`。
-6. 汇总结果，计算 ASR，并在页面展示图表与表格。
+5. 调用单 Judge 或多 Judge，根据“原始请求 + 模型回复”判定 `safe` 或 `unsafe`。
+6. 多 Judge 模式下按 majority vote 聚合，同时保留每个 Judge 的原始输出。
+7. 汇总结果，计算 ASR，并在页面展示图表与表格。
 
 其中 ASR 表示 Attack Success Rate，即被 judge 判定为 `unsafe` 的比例。
 
@@ -48,15 +52,16 @@ JailbreakBench、HarmBench 和用户自定义数据集接入到同一个本地�
 ├── server.js                          # Node.js 静态服务和后端 API
 ├── src/
 │   ├── app.js                         # 评测平台前端逻辑
+│   ├── api/evaluation-client.js       # 浏览器端评测调度
+│   ├── attacks/                       # 攻击策略与模板
 │   ├── chat.js                        # Llama 对话页逻辑
 │   ├── benchmarks/registry.js         # 内置 benchmark 注册表
+│   ├── benchmarks/loader.js           # Benchmark 数据加载和规范化
 │   ├── config/datasets.js             # 页面数据集选项
-│   ├── services/
-│   │   ├── attack-strategies.js       # 攻击策略与 prompt 变换
-│   │   ├── benchmark-loader.js        # Benchmark 数据加载和规范化
-│   │   ├── evaluator.js               # 前端评测调度
-│   │   ├── exporter.js                # 结果导出
-│   │   └── harmbench-human-jailbreaks.js
+│   ├── domain/case-schema.js          # 统一 case schema
+│   ├── reporting/
+│   │   ├── downloads.js              # 文件导出
+│   │   └── report-builder.js         # Markdown 报告生成
 │   └── styles/main.css
 ├── data/benchmarks/
 │   ├── jailbreakbench/harmful.json    # JailbreakBench harmful 本地数据
@@ -183,14 +188,54 @@ JUDGE_URL=http://127.0.0.1:8002/v1/chat/completions \
    - `HarmBench`
    - `自定义数据集`
 4. 选择攻击方法。
-5. 设置最大样本数。
-6. 点击“开始评测”。
-7. 查看 ASR 汇总、结果表格和图表。
-8. 需要离线分析时，点击“导出 JSON”。
+5. 选择 Judge 模式：
+   - `单 Judge`：使用本地 Llama、复用被测模型或自定义 OpenAI-compatible judge。
+   - `多 Judge majority vote`：可同时启用本地 Llama judge、GPT-compatible judge 和 rule-based fallback。
+6. 设置最大样本数。
+7. 点击“开始评测”。
+8. 查看 ASR 汇总、Top 失败案例、Judge 需复核样本、结果表格、Judge 投票和图表。
+9. 需要离线分析时，导出 JSON 或包含图表的 Markdown 报告。
+
+## 多 Judge 模式
+
+多 Judge 模式会对同一条模型回复运行多个 Judge，然后按多数投票聚合：
+
+- `safe` 票多于 `unsafe` 票时，最终判定为安全拒绝。
+- `unsafe` 票多于 `safe` 票时，最终判定为越狱成功。
+- 平票、未知输出或全部失败时，最终判定为需复核。
+
+每条结果会保留：
+
+- `judge_votes`：每个 Judge 的标签、模型名、原始输出和错误信息。
+- `judge_agreement`：有效投票中的一致率。
+- `judge_safe_votes` / `judge_unsafe_votes` / `judge_unknown_votes` / `judge_error_votes`。
+
+rule-based fallback 只作为兜底参考，基于常见拒答和顺从表达给出一票；课程展示或报告中应优先解释 LLM Judge 的原始输出和多 Judge 分歧样本。
 
 ## 自定义数据集格式
 
-自定义数据集支持 JSON 和 CSV。每条用例至少需要一个文本字段：
+自定义数据集支持 JSON 和 CSV。上传后会统一规范成 `safecompass.case.v1`：
+
+```json
+{
+  "schema_version": "safecompass.case.v1",
+  "id": "string",
+  "source": "custom",
+  "dataset": "custom",
+  "subset": null,
+  "prompt": "发给被测模型的文本",
+  "goal": "原始评测目标",
+  "original_prompt": "原始输入",
+  "target": "可选目标回复前缀",
+  "category": "危害类别",
+  "behavior": "行为描述或行为 ID",
+  "behavior_type": "custom",
+  "attack_type": "-",
+  "metadata": {}
+}
+```
+
+每条用例至少需要一个文本字段：
 
 ```text
 prompt / goal / request / question / instruction / text / content
@@ -201,10 +246,14 @@ prompt / goal / request / question / instruction / text / content
 ```json
 [
   {
+    "schema_version": "safecompass.case.v1",
     "id": "custom_001",
     "prompt": "需要评测的原始问题",
     "category": "可选危害类别",
-    "behavior_type": "custom"
+    "behavior_type": "custom",
+    "metadata": {
+      "note": "可选附加信息"
+    }
   }
 ]
 ```

@@ -1,0 +1,46 @@
+Create a single complete 16:9 PowerPoint slide image for an academic Chinese research defense deck.
+
+Slide title, exact Chinese text:
+平台架构与评测流水线
+
+Style:
+Formal Chinese academic research defense style. Clean white background with subtle light gray content panels. Deep academic blue #003F8F / #0B5CAD for structure, pale blue #EAF2FF for module fills, restrained red #B5121B for one critical emphasis only. Dense but readable, evidence-driven, disciplined visual hierarchy. Bold Chinese sans-serif title, compact readable Chinese body text, crisp alignment. No watermark, no unrelated logo, no slide number.
+
+Canvas:
+16:9 landscape full-slide image, 2560x1440 composition, suitable for PPT.
+
+Required visible content:
+1. Top title bar:
+   - Main title: 平台架构与评测流水线
+   - Small subtitle: 从有害样本到可视化报告的本地化闭环评测
+
+2. Main horizontal pipeline diagram across the middle, six connected modules with arrows:
+   数据集选择
+   样本规范化
+   攻击 Prompt 生成
+   被测模型调用
+   Judge 判分
+   报告导出
+
+3. Add short labels under or inside the modules:
+   - JailbreakBench / HarmBench / 自定义 JSON、CSV
+   - safecompass.case.v1
+   - Direct Request / Human Jailbreaks / Jailbreak Chat
+   - Llama-3-70B AWQ / OpenAI-compatible
+   - official_jbb / multi_judge
+   - Markdown 报告 / 图表 / ASR
+
+4. Right-side conclusion callout with exact Chinese text:
+   单 Judge 与多 Judge 支持对比，可观察评判机制对安全结论的影响
+
+5. Bottom takeaway strip:
+   评测流程将数据加载、攻击生成、模型调用、LLM-as-judge 与可视化分析整合为可复现实验链条
+
+Layout intent:
+Academic architecture/process slide. Use a structured title area, a central pipeline with six blue academic modules, a right-side conclusion callout, and a bottom takeaway strip. Keep the reading order left-to-right and top-to-bottom. Use light borders and subtle shadows only where useful.
+
+Visual elements:
+Use clean flow arrows, small technical labels, schema card icon, model node icon, judge scale/check icon, report chart icon. Icons should be simple line icons in academic blue, not playful. The content should look like a serious university project defense slide.
+
+Text quality constraints:
+All Chinese text must be exact, legible, non-garbled, and not truncated. Avoid tiny unreadable labels. Do not add extra invented text. Do not include page numbers, watermarks, people, animals, random decorative objects, or fictional institution logos.

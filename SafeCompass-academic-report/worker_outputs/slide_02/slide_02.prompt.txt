@@ -1,0 +1,111 @@
+# Codex PPT Slide Image Prompt
+
+## Canvas
+{
+  "type": "16:9 full-slide PowerPoint image",
+  "language": "Chinese",
+  "slide_number": 2,
+  "render_slide_number": false
+}
+
+## Deck Goal
+Create a formal academic report presentation about SafeCompass, a safety-risk evaluation and visualization platform for large language models, based on docs/text.md.
+
+## Required Background
+{
+  "deck_context": {
+    "source_summary": "SafeCompass 是一个面向大模型的安全风险评测与可视化分析平台。项目整合数据集加载、攻击 prompt 生成、模型调用、LLM-as-judge 判分、结果保存和可视化报告，支持本地 Llama-3-70B AWQ 和 OpenAI-compatible 接口，支持 single Judge 与 multi Judge，对 HarmBench text_test 等有害请求数据集进行越狱攻击安全评测。",
+    "core_claim": "SafeCompass 将大模型安全评测从一次性手工测试推进为可复现、可比较、可分析的本地化评测流程。",
+    "canonical_terms": [
+      "SafeCompass",
+      "JailbreakBench",
+      "HarmBench",
+      "ASR",
+      "Attack Success Rate",
+      "Jailbreak Chat",
+      "LLM-as-judge",
+      "official_jbb",
+      "multi_judge",
+      "safecompass.case.v1",
+      "Llama-3-70B AWQ",
+      "GPT-5.4"
+    ],
+    "experiments": [
+      "实验一：HarmBench text_test 200 条样本，Jailbreak Chat 攻击，Llama-3-70B，official_jbb 单 Judge，ASR 7.5%，185 条安全拒绝，15 条越狱成功。",
+      "实验二：同一数据集、同一攻击、同一 Llama 模型，Judge 模式改为 multi_judge，ASR 16.0%，162 条安全拒绝，32 条越狱成功，6 条需复核。",
+      "实验三：HarmBench text_test 200 条样本，Jailbreak Chat 攻击，GPT-5.4，official_jbb 单 Judge，ASR 0.0%，198 条安全拒绝，0 条越狱成功，2 条需复核。"
+    ]
+  },
+  "slide_local_context": {
+    "required_background": "危险内容类别包括网络攻击、违法行为指导、虚假信息、骚扰内容、化学与生物风险、版权文本复现。越狱攻击方式包括改写请求、添加角色设定、伪装研究场景、要求忽略规则。"
+  }
+}
+
+## Global Style
+{
+  "name": "科研答辩风",
+  "visual_direction": "formal Chinese academic research defense deck, serious and evidence-driven, structured scientific diagrams, concise conclusions, disciplined visual hierarchy, matching the approved Slide 4 sample as style reference",
+  "color_palette": "clean white #FFFFFF and subtle light gray #F5F7FA backgrounds; deep academic blue #003F8F and research blue #0B5CAD for structure; pale blue #EAF2FF fills; restrained formal red #B5121B only for critical risk or conclusion emphasis; neutral black #111111 and dark gray #333333 for text; light border gray #D8DEE8",
+  "typography": "bold Chinese sans-serif titles, left-aligned or centered depending on slide role; compact readable Chinese body text; blue section labels; red bold emphasis only where it helps the page-level conclusion",
+  "texture_and_finish": "flat academic slide design with light borders, subtle shadows, precise alignment, no heavy gradients, no playful decoration",
+  "deck_consistency": "same palette, typography mood, icon language, blue structural modules, red conclusion callouts, and clean academic tone across all slides; vary composition by slide role"
+}
+
+## Input Images
+
+- Image 1: /home/u2023202105/Safecompass/SafeCompass-academic-report/origin_image/slide_04.png — approved sample slide style reference; match palette, typography, hierarchy, density, line-icon style, and academic mood only; do not copy the exact pipeline layout unless the slide role requires it
+
+
+## Slide
+{
+  "number": 2,
+  "title": "研究背景与问题定义",
+  "role": "concept explanation",
+  "intent": "Define why safety evaluation under harmful and adversarial prompts is necessary."
+}
+
+## Text
+{
+  "title": "研究背景与问题定义",
+  "key_points": [
+    "模型能力增强后，危险内容生成风险同步增加",
+    "安全对齐可能被角色设定、研究伪装、忽略规则等越狱 prompt 绕过",
+    "普通问答测试不足，需要系统评估有害请求下的拒答能力",
+    "核心问题：模型面对攻击 prompt 时是否仍然可靠"
+  ],
+  "speaker_focus": null
+}
+
+## Layout
+{
+  "composition": "left-to-right risk chain diagram from 有害请求 to 越狱包装 to 模型响应 to 安全判定; right column lists three research questions; bottom red conclusion strip",
+  "relationship_to_previous_slide": "new layout"
+}
+
+## Visual Elements
+{
+  "main_visual": "risk chain with warning icon, prompt card, LLM node, decision gate",
+  "supporting_elements": "small category chips for cybercrime, illegal, misinformation, harassment, chemical_biological, copyright"
+}
+
+## Constraints
+[
+  "Chinese category labels must be readable.",
+  "Use red only for the core risk statement.",
+  "No slide number."
+]
+
+## Style Reference Rule
+Use Image 1 as the approved sample-slide style reference. Match its palette, typography mood, density, texture, and overall visual identity. Do not copy its exact layout unless this slide's layout explicitly asks for it.
+
+## Input Image Handling Rules
+For any input image marked as a strict input asset, include it visibly and preserve its content. Do not redraw, replace, relabel, or invent a similar figure. Scale and crop only as needed for composition while keeping the important labels, arrows, data, and relationships recognizable.
+
+## Universal Constraints
+- The final image itself must contain the title and key points.
+- Render Chinese text exactly and legibly; avoid garbled characters.
+- Keep the confirmed deck style consistent while varying layout by slide role.
+- No watermark, unrelated logo, or extra slide number.
+
+
+Additional style reminder: match the approved Slide 4 sample style: formal Chinese academic research defense deck, clean white/light gray background, deep academic blue structural modules, restrained red risk callout, bold readable Chinese sans-serif, line icons, high information clarity. Do not copy the exact Slide 4 pipeline layout.

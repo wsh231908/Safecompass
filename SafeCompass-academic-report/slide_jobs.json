@@ -1,0 +1,415 @@
+{
+  "run_status": "slides_recorded",
+  "deck_name": "SafeCompass-academic-report",
+  "selected_backend": "scripts/image_gen.py",
+  "sample_generation_method": {
+    "backend_used": "scripts/image_gen.py",
+    "tool_name": "scripts/image_gen.py",
+    "mode": "generate",
+    "prompt_source": "SafeCompass-academic-report/prompts.draft/slide_04.sample_prompt.txt",
+    "size": "2560x1440",
+    "quality": "medium",
+    "model": "gpt-image-2",
+    "base_url": "https://openrouter.icu/v1",
+    "approved_sample_path": "/home/u2023202105/Safecompass/SafeCompass-academic-report/origin_image/slide_04.png",
+    "input_context_preparation": "CLI/API fallback loaded OPENAI_API_KEY, OPENAI_BASE_URL, and CODEX_PPT_IMAGE_MODEL from ~/.codex-ppt-skill/.env; no input images were used for the approved sample.",
+    "handoff_rule": "Subagents must use this same scripts/image_gen.py CLI/API fallback path, generate mode, gpt-image-2 model, 2560x1440 size, and medium quality; return a blocker if unavailable."
+  },
+  "max_concurrent_slides": 6,
+  "slides": [
+    {
+      "slide_id": "slide_01",
+      "number": 1,
+      "title": "SafeCompass",
+      "job": "prompts/slide_01.json",
+      "out": "origin_image/slide_01.png",
+      "input_images": [
+        {
+          "path": "/home/u2023202105/Safecompass/SafeCompass-academic-report/origin_image/slide_04.png",
+          "role": "approved sample slide style reference",
+          "fidelity": "match palette, typography, hierarchy, density, line-icon style, and academic mood only; do not copy the exact pipeline layout unless the slide role requires it"
+        }
+      ],
+      "requires_context_images": true,
+      "status": "recorded",
+      "dispatch": {
+        "agent_id": "019ecc03-88fc-74a1-afe2-dfd7a3769a00",
+        "agent_nickname": "Goodall",
+        "prompt": "prompts/slide_01.json",
+        "prompt_sha256": "4fdee936325eeded4767439e13c33be7e2f9a1d2ca15ae55316651adf89a5eec",
+        "dispatched_at": "2026-06-15T16:01:24Z"
+      },
+      "result": {
+        "agent_id": "019ecc03-88fc-74a1-afe2-dfd7a3769a00",
+        "backend_used": "scripts/image_gen.py",
+        "selected_source": "/home/u2023202105/Safecompass/SafeCompass-academic-report/worker_outputs/slide_01/slide_01.png",
+        "selected_source_sha256": "5c330431fa259815d3e025a5ad7cf1f1d0bdb3eada08dbba4e1d508029d9cbe3",
+        "final_image": "origin_image/slide_01.png",
+        "final_image_sha256": "5c330431fa259815d3e025a5ad7cf1f1d0bdb3eada08dbba4e1d508029d9cbe3",
+        "expected_backend": "scripts/image_gen.py",
+        "expected_backend_labels": [
+          "scripts/image_gen.py"
+        ],
+        "sample_generation_method_matched": true,
+        "qa_note": "候选图为2560x1440 PNG，整体科研答辩风一致，中文主体清晰无截断重叠、无水印和页码。",
+        "recorded_at": "2026-06-15T16:09:41Z"
+      },
+      "blocker": null
+    },
+    {
+      "slide_id": "slide_02",
+      "number": 2,
+      "title": "研究背景与问题定义",
+      "job": "prompts/slide_02.json",
+      "out": "origin_image/slide_02.png",
+      "input_images": [
+        {
+          "path": "/home/u2023202105/Safecompass/SafeCompass-academic-report/origin_image/slide_04.png",
+          "role": "approved sample slide style reference",
+          "fidelity": "match palette, typography, hierarchy, density, line-icon style, and academic mood only; do not copy the exact pipeline layout unless the slide role requires it"
+        }
+      ],
+      "requires_context_images": true,
+      "status": "recorded",
+      "dispatch": {
+        "agent_id": "019ecc03-8a8e-7bc2-9b28-6b3819247413",
+        "agent_nickname": "Singer",
+        "prompt": "prompts/slide_02.json",
+        "prompt_sha256": "3f4cc9f4209a8b4c75f9b073fdb8e2c88e91ce066c86a60944f88aa76688d374",
+        "dispatched_at": "2026-06-15T16:01:24Z"
+      },
+      "result": {
+        "agent_id": "019ecc03-8a8e-7bc2-9b28-6b3819247413",
+        "backend_used": "scripts/image_gen.py",
+        "selected_source": "/home/u2023202105/Safecompass/SafeCompass-academic-report/worker_outputs/slide_02/slide_02.png",
+        "selected_source_sha256": "45296d08e5c05e5b2fac10dffb4674b39f816ecae17588d679739344cfa7ae56",
+        "final_image": "origin_image/slide_02.png",
+        "final_image_sha256": "45296d08e5c05e5b2fac10dffb4674b39f816ecae17588d679739344cfa7ae56",
+        "expected_backend": "scripts/image_gen.py",
+        "expected_backend_labels": [
+          "scripts/image_gen.py"
+        ],
+        "sample_generation_method_matched": true,
+        "qa_note": "视觉检查通过：中文清晰可读，科研答辩风格一致，无明显截断、重叠、水印或页码。",
+        "recorded_at": "2026-06-15T16:30:14Z"
+      },
+      "blocker": null
+    },
+    {
+      "slide_id": "slide_03",
+      "number": 3,
+      "title": "相关工作与项目定位",
+      "job": "prompts/slide_03.json",
+      "out": "origin_image/slide_03.png",
+      "input_images": [
+        {
+          "path": "/home/u2023202105/Safecompass/SafeCompass-academic-report/origin_image/slide_04.png",
+          "role": "approved sample slide style reference",
+          "fidelity": "match palette, typography, hierarchy, density, line-icon style, and academic mood only; do not copy the exact pipeline layout unless the slide role requires it"
+        }
+      ],
+      "requires_context_images": true,
+      "status": "recorded",
+      "dispatch": {
+        "agent_id": "019ecc03-8ba7-7390-9b12-4e9a80f2dacb",
+        "agent_nickname": "Feynman",
+        "prompt": "prompts/slide_03.json",
+        "prompt_sha256": "ae65280b238c9fd0046f722ba2f1002e34d0ed8d14ab89f7d8f4d72b5a269b3b",
+        "dispatched_at": "2026-06-15T16:01:24Z"
+      },
+      "result": {
+        "agent_id": "019ecc03-8ba7-7390-9b12-4e9a80f2dacb",
+        "backend_used": "scripts/image_gen.py",
+        "selected_source": "/home/u2023202105/Safecompass/SafeCompass-academic-report/worker_outputs/slide_03/slide_03.png",
+        "selected_source_sha256": "04c66ad35f7e4d1b4d3254fe1474e335c7b133104f43b2e49a4e6bf4730d3c42",
+        "final_image": "origin_image/slide_03.png",
+        "final_image_sha256": "04c66ad35f7e4d1b4d3254fe1474e335c7b133104f43b2e49a4e6bf4730d3c42",
+        "expected_backend": "scripts/image_gen.py",
+        "expected_backend_labels": [
+          "scripts/image_gen.py"
+        ],
+        "sample_generation_method_matched": true,
+        "qa_note": "候选图中文整体清晰可读，科研答辩风格与样张一致，无明显截断、重叠、水印或页码。",
+        "recorded_at": "2026-06-15T16:20:30Z"
+      },
+      "blocker": null
+    },
+    {
+      "slide_id": "slide_04",
+      "number": 4,
+      "title": "平台架构与评测流水线",
+      "job": "prompts/slide_04.json",
+      "out": "origin_image/slide_04.png",
+      "input_images": [
+        {
+          "path": "/home/u2023202105/Safecompass/SafeCompass-academic-report/origin_image/slide_04.png",
+          "role": "approved sample slide style reference",
+          "fidelity": "match palette, typography, hierarchy, density, line-icon style, and academic mood only; do not copy the exact pipeline layout unless the slide role requires it"
+        }
+      ],
+      "requires_context_images": true,
+      "status": "accepted",
+      "dispatch": null,
+      "result": {
+        "final_image": "origin_image/slide_04.png",
+        "accepted_sample": true
+      },
+      "blocker": null
+    },
+    {
+      "slide_id": "slide_05",
+      "number": 5,
+      "title": "统一数据 Schema 与攻击策略",
+      "job": "prompts/slide_05.json",
+      "out": "origin_image/slide_05.png",
+      "input_images": [
+        {
+          "path": "/home/u2023202105/Safecompass/SafeCompass-academic-report/origin_image/slide_04.png",
+          "role": "approved sample slide style reference",
+          "fidelity": "match palette, typography, hierarchy, density, line-icon style, and academic mood only; do not copy the exact pipeline layout unless the slide role requires it"
+        }
+      ],
+      "requires_context_images": true,
+      "status": "recorded",
+      "dispatch": {
+        "agent_id": "019ecc03-8caf-7402-813e-9430231be006",
+        "agent_nickname": "Erdos",
+        "prompt": "prompts/slide_05.json",
+        "prompt_sha256": "e23239a8e7b2a960f475791c262529d570fdf77f01c8138ff352d40238ca724c",
+        "dispatched_at": "2026-06-15T16:01:24Z"
+      },
+      "result": {
+        "agent_id": "019ecc03-8caf-7402-813e-9430231be006",
+        "backend_used": "scripts/image_gen.py",
+        "selected_source": "/home/u2023202105/Safecompass/SafeCompass-academic-report/worker_outputs/slide_05/slide_05.png",
+        "selected_source_sha256": "115f35a7b17408f5a6216d52048a8a32db3c4d37d0d90639fecf9ad4ac456967",
+        "final_image": "origin_image/slide_05.png",
+        "final_image_sha256": "115f35a7b17408f5a6216d52048a8a32db3c4d37d0d90639fecf9ad4ac456967",
+        "expected_backend": "scripts/image_gen.py",
+        "expected_backend_labels": [
+          "scripts/image_gen.py"
+        ],
+        "sample_generation_method_matched": true,
+        "qa_note": "候选图中文清晰可读、风格与样张一致，未见截断重叠、水印或页码。",
+        "recorded_at": "2026-06-15T16:09:41Z"
+      },
+      "blocker": null
+    },
+    {
+      "slide_id": "slide_06",
+      "number": 6,
+      "title": "实验设计",
+      "job": "prompts/slide_06.json",
+      "out": "origin_image/slide_06.png",
+      "input_images": [
+        {
+          "path": "/home/u2023202105/Safecompass/SafeCompass-academic-report/origin_image/slide_04.png",
+          "role": "approved sample slide style reference",
+          "fidelity": "match palette, typography, hierarchy, density, line-icon style, and academic mood only; do not copy the exact pipeline layout unless the slide role requires it"
+        }
+      ],
+      "requires_context_images": true,
+      "status": "recorded",
+      "dispatch": {
+        "agent_id": "019ecc03-8dc0-7c73-9602-94eb0049e4dd",
+        "agent_nickname": "Popper",
+        "prompt": "prompts/slide_06.json",
+        "prompt_sha256": "a87ab413cd288f17cf6b744a8476d2469e789f1a389e066ab1609bf70fd13bb8",
+        "dispatched_at": "2026-06-15T16:01:24Z"
+      },
+      "result": {
+        "agent_id": "019ecc03-8dc0-7c73-9602-94eb0049e4dd",
+        "backend_used": "scripts/image_gen.py",
+        "selected_source": "/home/u2023202105/Safecompass/SafeCompass-academic-report/worker_outputs/slide_06/slide_06.png",
+        "selected_source_sha256": "2b9da559a809735be981b62071c6e66852b6b7404a4627052f9cef64f85c54db",
+        "final_image": "origin_image/slide_06.png",
+        "final_image_sha256": "2b9da559a809735be981b62071c6e66852b6b7404a4627052f9cef64f85c54db",
+        "expected_backend": "scripts/image_gen.py",
+        "expected_backend_labels": [
+          "scripts/image_gen.py"
+        ],
+        "sample_generation_method_matched": true,
+        "qa_note": "中文文本清晰可读，整体风格与样张一致，无明显截断、重叠、水印或页码。",
+        "recorded_at": "2026-06-15T16:06:42Z"
+      },
+      "blocker": null
+    },
+    {
+      "slide_id": "slide_07",
+      "number": 7,
+      "title": "实验一结果：Llama + 单 Judge",
+      "job": "prompts/slide_07.json",
+      "out": "origin_image/slide_07.png",
+      "input_images": [
+        {
+          "path": "/home/u2023202105/Safecompass/SafeCompass-academic-report/origin_image/slide_04.png",
+          "role": "approved sample slide style reference",
+          "fidelity": "match palette, typography, hierarchy, density, line-icon style, and academic mood only; do not copy the exact pipeline layout unless the slide role requires it"
+        },
+        {
+          "path": "/home/u2023202105/Safecompass/report/image1/危害类型asr.png",
+          "role": "strict input asset and main evidence chart for HarmBench Llama official_jbb category ASR",
+          "fidelity": "preserve chart data, axes, labels, legends, colors, and values"
+        }
+      ],
+      "requires_context_images": true,
+      "status": "recorded",
+      "dispatch": {
+        "agent_id": "019ecc03-8ebe-73e2-9b62-918a0502014b",
+        "agent_nickname": "Linnaeus",
+        "prompt": "prompts/slide_07.json",
+        "prompt_sha256": "dbefbf26c0af9d798ce096b55c1d660a66b6958d48f83892ce0e59207dc45d92",
+        "dispatched_at": "2026-06-15T16:01:24Z"
+      },
+      "result": {
+        "agent_id": "019ecc03-8ebe-73e2-9b62-918a0502014b",
+        "backend_used": "scripts/image_gen.py",
+        "selected_source": "/home/u2023202105/Safecompass/SafeCompass-academic-report/worker_outputs/slide_07/slide_07.png",
+        "selected_source_sha256": "9acad005ec77b246a22bd4b4f35ca7cab45b3de954251a5fdacee89521b2d60d",
+        "final_image": "origin_image/slide_07.png",
+        "final_image_sha256": "9acad005ec77b246a22bd4b4f35ca7cab45b3de954251a5fdacee89521b2d60d",
+        "expected_backend": "scripts/image_gen.py",
+        "expected_backend_labels": [
+          "scripts/image_gen.py"
+        ],
+        "sample_generation_method_matched": true,
+        "qa_note": "已视觉检查，中文可读、风格与样张一致、来源图表可见且关键数据保留，无截断、重叠、水印或页码。",
+        "recorded_at": "2026-06-15T16:12:11Z"
+      },
+      "blocker": null
+    },
+    {
+      "slide_id": "slide_08",
+      "number": 8,
+      "title": "实验二结果：多 Judge 暴露更多边界风险",
+      "job": "prompts/slide_08.json",
+      "out": "origin_image/slide_08.png",
+      "input_images": [
+        {
+          "path": "/home/u2023202105/Safecompass/SafeCompass-academic-report/origin_image/slide_04.png",
+          "role": "approved sample slide style reference",
+          "fidelity": "match palette, typography, hierarchy, density, line-icon style, and academic mood only; do not copy the exact pipeline layout unless the slide role requires it"
+        },
+        {
+          "path": "/home/u2023202105/Safecompass/report/image2/78928940f6016cd49cbeec001e1a2924.png",
+          "role": "strict input asset and model risk radar chart for multi_judge result",
+          "fidelity": "preserve chart data, labels, legends, colors, and values"
+        },
+        {
+          "path": "/home/u2023202105/Safecompass/report/image2/1af3461c2f265ef57a7b9bdff5a6cdc8.png",
+          "role": "strict input asset and Pareto chart for multi_judge attack success samples",
+          "fidelity": "preserve chart data, labels, legends, colors, and values"
+        }
+      ],
+      "requires_context_images": true,
+      "status": "recorded",
+      "dispatch": {
+        "agent_id": "019ecc0f-7a7e-7b11-8bb1-c65971b8bd44",
+        "agent_nickname": "Nash",
+        "prompt": "prompts/slide_08.json",
+        "prompt_sha256": "4f028fd9f2fffb13036e7f5c7ab508e67cf1efa093f21afc833a2405e10efe33",
+        "dispatched_at": "2026-06-15T16:14:32Z"
+      },
+      "result": {
+        "agent_id": "019ecc0f-7a7e-7b11-8bb1-c65971b8bd44",
+        "backend_used": "scripts/image_gen.py",
+        "selected_source": "/home/u2023202105/Safecompass/SafeCompass-academic-report/worker_outputs/slide_08/slide_08.png",
+        "selected_source_sha256": "988ec309c0054d0240e127adb53d3255cde0a9275e26f0740f11f0e39a0ab7f5",
+        "final_image": "origin_image/slide_08.png",
+        "final_image_sha256": "988ec309c0054d0240e127adb53d3255cde0a9275e26f0740f11f0e39a0ab7f5",
+        "expected_backend": "scripts/image_gen.py",
+        "expected_backend_labels": [
+          "scripts/image_gen.py"
+        ],
+        "sample_generation_method_matched": true,
+        "qa_note": "已视觉检查，中文可读、风格与样张一致，两张严格输入图表均清晰可见且关键标签数值保留，无截断、重叠、水印或页码。",
+        "recorded_at": "2026-06-15T16:22:42Z"
+      },
+      "blocker": null
+    },
+    {
+      "slide_id": "slide_09",
+      "number": 9,
+      "title": "模型间对比：GPT-5.4 的安全拒答表现",
+      "job": "prompts/slide_09.json",
+      "out": "origin_image/slide_09.png",
+      "input_images": [
+        {
+          "path": "/home/u2023202105/Safecompass/SafeCompass-academic-report/origin_image/slide_04.png",
+          "role": "approved sample slide style reference",
+          "fidelity": "match palette, typography, hierarchy, density, line-icon style, and academic mood only; do not copy the exact pipeline layout unless the slide role requires it"
+        },
+        {
+          "path": "/home/u2023202105/Safecompass/report/image1/模型风险雷达图.png",
+          "role": "optional evidence asset and Llama official_jbb risk radar chart",
+          "fidelity": "preserve chart labels and values if used"
+        }
+      ],
+      "requires_context_images": true,
+      "status": "recorded",
+      "dispatch": {
+        "agent_id": "019ecc0f-8020-7183-888f-6de2d651931c",
+        "agent_nickname": "Lorentz",
+        "prompt": "prompts/slide_09.json",
+        "prompt_sha256": "f15f3760c63ad9584949c39b9e985c0387d2b121281d5703ea22ccbd475768d0",
+        "dispatched_at": "2026-06-15T16:14:32Z"
+      },
+      "result": {
+        "agent_id": "019ecc0f-8020-7183-888f-6de2d651931c",
+        "backend_used": "scripts/image_gen.py",
+        "selected_source": "/home/u2023202105/Safecompass/SafeCompass-academic-report/worker_outputs/slide_09/slide_09.png",
+        "selected_source_sha256": "1633e7d6f21357914e08bf6d55d27f2a9e12257408a1cc7d4fd76f159636b020",
+        "final_image": "origin_image/slide_09.png",
+        "final_image_sha256": "1633e7d6f21357914e08bf6d55d27f2a9e12257408a1cc7d4fd76f159636b020",
+        "expected_backend": "scripts/image_gen.py",
+        "expected_backend_labels": [
+          "scripts/image_gen.py"
+        ],
+        "sample_generation_method_matched": true,
+        "qa_note": "中文文本清晰可读，风格与样张一致，ASR 7.5% 和 ASR 0.0% 对比值正确呈现，未见截断、重叠、水印或页码。",
+        "recorded_at": "2026-06-15T16:22:42Z"
+      },
+      "blocker": null
+    },
+    {
+      "slide_id": "slide_10",
+      "number": 10,
+      "title": "结论、不足与未来工作",
+      "job": "prompts/slide_10.json",
+      "out": "origin_image/slide_10.png",
+      "input_images": [
+        {
+          "path": "/home/u2023202105/Safecompass/SafeCompass-academic-report/origin_image/slide_04.png",
+          "role": "approved sample slide style reference",
+          "fidelity": "match palette, typography, hierarchy, density, line-icon style, and academic mood only; do not copy the exact pipeline layout unless the slide role requires it"
+        }
+      ],
+      "requires_context_images": true,
+      "status": "recorded",
+      "dispatch": {
+        "agent_id": "019ecc0f-8218-7203-87c5-1fc072c5c59f",
+        "agent_nickname": "Darwin",
+        "prompt": "prompts/slide_10.json",
+        "prompt_sha256": "f65d0e4de8fe170d2713899f8d7fa69b37f340183c0e3b611dec825f04f88156",
+        "dispatched_at": "2026-06-15T16:14:33Z"
+      },
+      "result": {
+        "agent_id": "019ecc0f-8218-7203-87c5-1fc072c5c59f",
+        "backend_used": "scripts/image_gen.py",
+        "selected_source": "/home/u2023202105/Safecompass/SafeCompass-academic-report/worker_outputs/slide_10/slide_10.png",
+        "selected_source_sha256": "f559f08a8142e980cd82491e9ea40c71f4cfe0ede2a549005cb0063725a97e7d",
+        "final_image": "origin_image/slide_10.png",
+        "final_image_sha256": "f559f08a8142e980cd82491e9ea40c71f4cfe0ede2a549005cb0063725a97e7d",
+        "expected_backend": "scripts/image_gen.py",
+        "expected_backend_labels": [
+          "scripts/image_gen.py"
+        ],
+        "sample_generation_method_matched": true,
+        "qa_note": "候选图为2560x1440 PNG，中文清晰可读，科研答辩风与样张一致，无明显截断、重叠、水印或页码。",
+        "recorded_at": "2026-06-15T16:20:30Z"
+      },
+      "blocker": null
+    }
+  ],
+  "updated_at": "2026-06-15T16:30:14Z"
+}

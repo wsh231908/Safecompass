@@ -149,6 +149,13 @@ function buildAttackAttempt(testCase, strategy, prompt, attemptIndex, attemptTot
   const family = attackFamilies[strategy.family];
   const originalPrompt = testCase.prompt;
   const originalGoal = testCase.goal || originalPrompt;
+  const attackMetadata = {
+    family: strategy.family,
+    strategy: strategy.id,
+    variant: strategy.officialMethod || strategy.id,
+    attempt_index: attemptIndex,
+    attempt_total: attemptTotal
+  };
 
   return {
     ...testCase,
@@ -165,7 +172,11 @@ function buildAttackAttempt(testCase, strategy, prompt, attemptIndex, attemptTot
     official_attack_type: strategy.officialAttackType || null,
     base_case_id: testCase.base_case_id || testCase.id,
     attempt_index: attemptIndex,
-    attempt_total: attemptTotal
+    attempt_total: attemptTotal,
+    metadata: {
+      ...(testCase.metadata || {}),
+      attack: attackMetadata
+    }
   };
 }
 

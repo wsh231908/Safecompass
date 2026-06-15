@@ -4,6 +4,7 @@ node_modules/
 .env
 __pycache__/
 logs/
+runs/
 *.log
 *.pid
 dist/

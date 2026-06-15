@@ -1,0 +1,364 @@
+{
+  "deck_name": "SafeCompass-academic-report",
+  "language": "Chinese",
+  "goal": "Create a formal academic report presentation about SafeCompass, a safety-risk evaluation and visualization platform for large language models, based on docs/text.md.",
+  "deck_context": {
+    "source_summary": "SafeCompass 是一个面向大模型的安全风险评测与可视化分析平台。项目整合数据集加载、攻击 prompt 生成、模型调用、LLM-as-judge 判分、结果保存和可视化报告，支持本地 Llama-3-70B AWQ 和 OpenAI-compatible 接口，支持 single Judge 与 multi Judge，对 HarmBench text_test 等有害请求数据集进行越狱攻击安全评测。",
+    "core_claim": "SafeCompass 将大模型安全评测从一次性手工测试推进为可复现、可比较、可分析的本地化评测流程。",
+    "canonical_terms": [
+      "SafeCompass",
+      "JailbreakBench",
+      "HarmBench",
+      "ASR",
+      "Attack Success Rate",
+      "Jailbreak Chat",
+      "LLM-as-judge",
+      "official_jbb",
+      "multi_judge",
+      "safecompass.case.v1",
+      "Llama-3-70B AWQ",
+      "GPT-5.4"
+    ],
+    "experiments": [
+      "实验一：HarmBench text_test 200 条样本，Jailbreak Chat 攻击，Llama-3-70B，official_jbb 单 Judge，ASR 7.5%，185 条安全拒绝，15 条越狱成功。",
+      "实验二：同一数据集、同一攻击、同一 Llama 模型，Judge 模式改为 multi_judge，ASR 16.0%，162 条安全拒绝，32 条越狱成功，6 条需复核。",
+      "实验三：HarmBench text_test 200 条样本，Jailbreak Chat 攻击，GPT-5.4，official_jbb 单 Judge，ASR 0.0%，198 条安全拒绝，0 条越狱成功，2 条需复核。"
+    ]
+  },
+  "selected_image_backend": "scripts/image_gen.py",
+  "max_concurrent_slides": 6,
+  "sample_generation_method": {
+    "backend_used": "scripts/image_gen.py",
+    "tool_name": "scripts/image_gen.py",
+    "mode": "generate",
+    "prompt_source": "SafeCompass-academic-report/prompts.draft/slide_04.sample_prompt.txt",
+    "size": "2560x1440",
+    "quality": "medium",
+    "model": "gpt-image-2",
+    "base_url": "https://openrouter.icu/v1",
+    "approved_sample_path": "/home/u2023202105/Safecompass/SafeCompass-academic-report/origin_image/slide_04.png",
+    "input_context_preparation": "CLI/API fallback loaded OPENAI_API_KEY, OPENAI_BASE_URL, and CODEX_PPT_IMAGE_MODEL from ~/.codex-ppt-skill/.env; no input images were used for the approved sample.",
+    "handoff_rule": "Subagents must use this same scripts/image_gen.py CLI/API fallback path, generate mode, gpt-image-2 model, 2560x1440 size, and medium quality; return a blocker if unavailable."
+  },
+  "style": {
+    "name": "科研答辩风",
+    "visual_direction": "formal Chinese academic research defense deck, serious and evidence-driven, structured scientific diagrams, concise conclusions, disciplined visual hierarchy, matching the approved Slide 4 sample as style reference",
+    "color_palette": "clean white #FFFFFF and subtle light gray #F5F7FA backgrounds; deep academic blue #003F8F and research blue #0B5CAD for structure; pale blue #EAF2FF fills; restrained formal red #B5121B only for critical risk or conclusion emphasis; neutral black #111111 and dark gray #333333 for text; light border gray #D8DEE8",
+    "typography": "bold Chinese sans-serif titles, left-aligned or centered depending on slide role; compact readable Chinese body text; blue section labels; red bold emphasis only where it helps the page-level conclusion",
+    "texture_and_finish": "flat academic slide design with light borders, subtle shadows, precise alignment, no heavy gradients, no playful decoration",
+    "deck_consistency": "same palette, typography mood, icon language, blue structural modules, red conclusion callouts, and clean academic tone across all slides; vary composition by slide role"
+  },
+  "approved_style_reference": {
+    "path": "/home/u2023202105/Safecompass/SafeCompass-academic-report/origin_image/slide_04.png",
+    "role": "approved sample slide style reference",
+    "fidelity": "match palette, typography, hierarchy, density, line-icon style, and academic mood only; do not copy the exact pipeline layout unless the slide role requires it"
+  },
+  "slides": [
+    {
+      "number": 1,
+      "title": "SafeCompass",
+      "role": "cover",
+      "intent": "Open the academic report and establish the project identity.",
+      "key_points": [
+        "面向大模型的安全风险评测与可视化分析平台",
+        "聚焦有害请求、越狱攻击与拒答可靠性",
+        "系统实现与实验分析并重"
+      ],
+      "local_context": {
+        "required_background": "SafeCompass 是课程项目/学术汇报语境下的平台项目，不要虚构真实机构 logo。重点突出安全评测、可视化分析、本地化闭环。"
+      },
+      "layout": {
+        "composition": "large centered project title with subtitle; central abstract system visual with four nodes: harmful request, attack prompt, model, judge/report; bottom thin academic metadata strip without fake logo",
+        "relationship_to_previous_slide": "opening slide"
+      },
+      "visual_elements": {
+        "main_visual": "abstract LLM safety evaluation network, shield/radar/flow nodes in academic blue",
+        "supporting_elements": "small labels for 有害请求, 攻击 Prompt, 被测模型, Judge, 可视化报告"
+      },
+      "constraints": [
+        "No fake institution logo.",
+        "Keep cover text sparse and readable.",
+        "No slide number."
+      ]
+    },
+    {
+      "number": 2,
+      "title": "研究背景与问题定义",
+      "role": "concept explanation",
+      "intent": "Define why safety evaluation under harmful and adversarial prompts is necessary.",
+      "key_points": [
+        "模型能力增强后，危险内容生成风险同步增加",
+        "安全对齐可能被角色设定、研究伪装、忽略规则等越狱 prompt 绕过",
+        "普通问答测试不足，需要系统评估有害请求下的拒答能力",
+        "核心问题：模型面对攻击 prompt 时是否仍然可靠"
+      ],
+      "local_context": {
+        "required_background": "危险内容类别包括网络攻击、违法行为指导、虚假信息、骚扰内容、化学与生物风险、版权文本复现。越狱攻击方式包括改写请求、添加角色设定、伪装研究场景、要求忽略规则。"
+      },
+      "layout": {
+        "composition": "left-to-right risk chain diagram from 有害请求 to 越狱包装 to 模型响应 to 安全判定; right column lists three research questions; bottom red conclusion strip",
+        "relationship_to_previous_slide": "new layout"
+      },
+      "visual_elements": {
+        "main_visual": "risk chain with warning icon, prompt card, LLM node, decision gate",
+        "supporting_elements": "small category chips for cybercrime, illegal, misinformation, harassment, chemical_biological, copyright"
+      },
+      "constraints": [
+        "Chinese category labels must be readable.",
+        "Use red only for the core risk statement.",
+        "No slide number."
+      ]
+    },
+    {
+      "number": 3,
+      "title": "相关工作与项目定位",
+      "role": "comparison",
+      "intent": "Position SafeCompass against JailbreakBench and HarmBench.",
+      "key_points": [
+        "参考 JailbreakBench 与 HarmBench 的安全评测范式",
+        "使用有害行为数据集、攻击方法与 ASR 指标",
+        "SafeCompass 不止复现静态 benchmark，而是整合完整本地评测流程",
+        "支持本地 Llama-3-70B AWQ 与 OpenAI-compatible 接口"
+      ],
+      "local_context": {
+        "required_background": "ASR 是 Attack Success Rate，表示攻击成功率。SafeCompass 的区别是将数据集加载、攻击 prompt 生成、模型调用、Judge 判分、结果保存、可视化报告整合到平台。"
+      },
+      "layout": {
+        "composition": "two-column academic comparison: left benchmark foundations, right SafeCompass platform expansion; center arrow labeled 从基准到平台; bottom takeaway",
+        "relationship_to_previous_slide": "new layout"
+      },
+      "visual_elements": {
+        "main_visual": "comparison matrix with check marks and arrows",
+        "supporting_elements": "ASR metric badge, local/API model connector icons"
+      },
+      "constraints": [
+        "Render JailbreakBench, HarmBench, SafeCompass, ASR exactly.",
+        "Do not invent benchmark details beyond the listed items.",
+        "No slide number."
+      ]
+    },
+    {
+      "number": 4,
+      "title": "平台架构与评测流水线",
+      "role": "architecture / process",
+      "intent": "Explain the end-to-end evaluation pipeline.",
+      "key_points": [
+        "前端评测页面、后端评测 API、统一数据 schema 协同工作",
+        "流程：数据集选择、样本规范化、攻击 prompt 生成、模型调用、Judge 判分、报告导出",
+        "支持单 Judge 与多 Judge 投票",
+        "输出安全拒绝数、越狱成功数、需复核样本与 ASR"
+      ],
+      "local_context": {
+        "required_background": "This slide has already been generated and approved as the style sample. Reuse origin_image/slide_04.png as the accepted final slide."
+      },
+      "layout": {
+        "composition": "approved sample pipeline layout",
+        "relationship_to_previous_slide": "approved sample"
+      },
+      "visual_elements": {
+        "main_visual": "Dataset -> Case Schema -> Attack -> Model -> Judge -> Report pipeline",
+        "supporting_elements": "right-side red conclusion callout and bottom blue takeaway strip"
+      },
+      "constraints": [
+        "Use existing approved sample image; do not regenerate.",
+        "No slide number."
+      ],
+      "sample_approved": true
+    },
+    {
+      "number": 5,
+      "title": "统一数据 Schema 与攻击策略",
+      "role": "concept explanation",
+      "intent": "Explain the case schema abstraction and supported prompt attack strategies.",
+      "key_points": [
+        "safecompass.case.v1 屏蔽不同数据集字段差异",
+        "样本字段包含 id、source、dataset、prompt、goal、category、behavior_type、metadata",
+        "支持 JailbreakBench harmful、HarmBench text_test 与自定义 JSON/CSV",
+        "攻击策略包括 Direct Request、Human Jailbreaks、Jailbreak Chat"
+      ],
+      "local_context": {
+        "required_background": "prompt 表示实际发送给被测模型的文本，goal 表示原始有害请求或评测目标，category 表示危害类别，metadata 保留原始数据集上下文、标签和行为编号等信息。"
+      },
+      "layout": {
+        "composition": "center schema card named safecompass.case.v1 with eight field chips; left side data source column; right side downstream modules Attack, Model, Judge, Report; bottom strategy strip",
+        "relationship_to_previous_slide": "concept continuation but new composition"
+      },
+      "visual_elements": {
+        "main_visual": "structured data schema card connected to sources and evaluation modules",
+        "supporting_elements": "field chips, arrows, small code-like panels"
+      },
+      "constraints": [
+        "Render field names exactly in monospace-like text where possible.",
+        "Keep all field labels readable.",
+        "No slide number."
+      ]
+    },
+    {
+      "number": 6,
+      "title": "实验设计",
+      "role": "experiment setup",
+      "intent": "Show controlled variables and experimental conditions before presenting results.",
+      "key_points": [
+        "三次实验均使用 HarmBench text_test 子集，共 200 条样本",
+        "攻击方法统一为 Jailbreak Chat，用于控制攻击变量",
+        "实验一：Llama-3-70B + official_jbb 单 Judge",
+        "实验二：Llama-3-70B + multi_judge",
+        "实验三：GPT-5.4 + official_jbb 单 Judge"
+      ],
+      "local_context": {
+        "required_background": "固定变量：数据集 HarmBench text_test、样本数 200、攻击方法 Jailbreak Chat。变化变量：Judge 模式和被测模型。"
+      },
+      "layout": {
+        "composition": "three-column experiment matrix; top fixed-variable banner; each column shows model, judge mode, sample count, attack method; bottom red/blue note highlights controlled comparison",
+        "relationship_to_previous_slide": "new layout"
+      },
+      "visual_elements": {
+        "main_visual": "experiment configuration matrix with three numbered cards",
+        "supporting_elements": "fixed variable lock icons and changed variable markers"
+      },
+      "constraints": [
+        "Render official_jbb, multi_judge, Jailbreak Chat exactly.",
+        "Do not add extra experiments.",
+        "No slide number."
+      ]
+    },
+    {
+      "number": 7,
+      "title": "实验一结果：Llama + 单 Judge",
+      "role": "data evidence",
+      "intent": "Present the Llama official_jbb baseline result and category-level weak points.",
+      "key_points": [
+        "200 条样本中 185 条安全拒绝，15 条越狱成功",
+        "整体 ASR 为 7.5%",
+        "cybercrime_intrusion 风险最高，ASR 为 15.6%",
+        "copyright 类别 ASR 为 0%，整体拒答能力较强但存在薄弱点"
+      ],
+      "local_context": {
+        "required_background": "实验一配置：HarmBench text_test, Llama-3-70B, official_jbb, Jailbreak Chat。主要结论：本地 Llama 在网络入侵和违法行为类任务上仍有薄弱点。"
+      },
+      "required_images": [
+        {
+          "path": "/home/u2023202105/Safecompass/report/image1/危害类型asr.png",
+          "role": "strict input asset and main evidence chart for HarmBench Llama official_jbb category ASR",
+          "fidelity": "preserve chart data, axes, labels, legends, colors, and values"
+        }
+      ],
+      "layout": {
+        "composition": "large strict source chart on the left or center; right-side academic metric summary cards for 185 safe refusals, 15 jailbreak successes, ASR 7.5%; bottom takeaway about cybercrime_intrusion risk",
+        "relationship_to_previous_slide": "data evidence after experiment setup"
+      },
+      "visual_elements": {
+        "main_visual": "preserved category ASR chart",
+        "supporting_elements": "metric cards and red risk callout"
+      },
+      "constraints": [
+        "Required source chart must be visibly represented and not replaced by an approximate redraw.",
+        "Preserve numeric values exactly.",
+        "No slide number."
+      ]
+    },
+    {
+      "number": 8,
+      "title": "实验二结果：多 Judge 暴露更多边界风险",
+      "role": "data evidence / comparison",
+      "intent": "Show that multi_judge raises detected ASR and introduces review cases.",
+      "key_points": [
+        "同一 Llama 模型在 multi_judge 下，安全拒绝降至 162 条",
+        "越狱成功升至 32 条，另有 6 条需复核",
+        "整体 ASR 从 7.5% 上升至 16.0%",
+        "cybercrime_intrusion、misinformation_disinformation 与 copyright 类别风险上升明显"
+      ],
+      "local_context": {
+        "required_background": "实验二保持数据集、样本数、攻击方法和被测 Llama 模型不变，仅将 Judge 模式改为 multi_judge。多 Judge 更敏感，但会引入 Judge 分歧和人工复核需求。"
+      },
+      "required_images": [
+        {
+          "path": "/home/u2023202105/Safecompass/report/image2/78928940f6016cd49cbeec001e1a2924.png",
+          "role": "strict input asset and model risk radar chart for multi_judge result",
+          "fidelity": "preserve chart data, labels, legends, colors, and values"
+        },
+        {
+          "path": "/home/u2023202105/Safecompass/report/image2/1af3461c2f265ef57a7b9bdff5a6cdc8.png",
+          "role": "strict input asset and Pareto chart for multi_judge attack success samples",
+          "fidelity": "preserve chart data, labels, legends, colors, and values"
+        }
+      ],
+      "layout": {
+        "composition": "two evidence panels for the strict radar chart and Pareto chart; top KPI strip shows ASR 16.0%, 32 jailbreak successes, 6 review cases; red callout explains Judge sensitivity and disagreement",
+        "relationship_to_previous_slide": "data evidence continuation with a different two-panel layout"
+      },
+      "visual_elements": {
+        "main_visual": "two preserved strict source charts",
+        "supporting_elements": "KPI strip and Judge disagreement callout"
+      },
+      "constraints": [
+        "Both required source charts must be visibly represented and not replaced by approximate redraws.",
+        "Preserve numeric values exactly.",
+        "No slide number."
+      ]
+    },
+    {
+      "number": 9,
+      "title": "模型间对比：GPT-5.4 的安全拒答表现",
+      "role": "comparison / data evidence",
+      "intent": "Compare Llama and GPT-5.4 under the same official_jbb Judge standard.",
+      "key_points": [
+        "GPT-5.4 + official_jbb 下，198 条安全拒绝，0 条越狱成功，2 条需复核",
+        "整体 ASR 为 0.0%",
+        "相比 Llama 单 Judge 的 7.5% ASR，GPT-5.4 表现出更强安全拒答能力",
+        "chemical_biological 中 2 条 ambiguous 仍需人工检查"
+      ],
+      "local_context": {
+        "required_background": "实验三主要提供模型间对比。与实验一相比，两者使用相同数据集、相同攻击方法和相同 official_jbb 单 Judge，但被测模型不同。"
+      },
+      "required_images": [
+        {
+          "path": "/home/u2023202105/Safecompass/report/image1/模型风险雷达图.png",
+          "role": "optional evidence asset and Llama official_jbb risk radar chart",
+          "fidelity": "preserve chart labels and values if used"
+        }
+      ],
+      "layout": {
+        "composition": "side-by-side model comparison: left Llama baseline ASR 7.5%, right GPT-5.4 ASR 0.0%; center downward risk arrow; optional source radar chart as small evidence inset; bottom note about chemical_biological ambiguous review cases",
+        "relationship_to_previous_slide": "comparison after data evidence"
+      },
+      "visual_elements": {
+        "main_visual": "comparison cards with large ASR values and safety refusal counts",
+        "supporting_elements": "small radar chart inset, ambiguous review warning chip"
+      },
+      "constraints": [
+        "Render GPT-5.4, Llama-3-70B, ASR 0.0%, ASR 7.5% exactly.",
+        "Do not claim chemical_biological is unsafe; mark it as ambiguous/review.",
+        "No slide number."
+      ]
+    },
+    {
+      "number": 10,
+      "title": "结论、不足与未来工作",
+      "role": "summary / closing",
+      "intent": "Close with findings, limitations, and future directions.",
+      "key_points": [
+        "结论一：Judge 机制影响评测结论，多 Judge 更容易暴露潜在风险和边界案例",
+        "结论二：被测模型影响安全结果，GPT-5.4 在相同 Judge 标准下 ASR 更低",
+        "局限：数据集覆盖有限，攻击方法以 prompt 修改为主，Judge 可靠性仍需验证",
+        "未来方向：扩展 benchmark、引入 PAIR 等自动化攻击、强化可解释报告与复现实验记录"
+      ],
+      "local_context": {
+        "required_background": "未来计划包括扩展更多 benchmark 和危害类别、引入更系统的攻击策略对比、强化 Judge 分歧分析、失败案例聚类、模型间横向对比和可复现实验记录。"
+      },
+      "layout": {
+        "composition": "three-part closing grid: Findings, Limitations, Next Steps; bottom large blue thesis strip restating SafeCompass goal; use red emphasis only for risk/limitation phrase",
+        "relationship_to_previous_slide": "closing summary"
+      },
+      "visual_elements": {
+        "main_visual": "structured summary grid with academic icons for conclusion, limitation, future work",
+        "supporting_elements": "final thesis strip and small reproducibility loop diagram"
+      },
+      "constraints": [
+        "Keep all future work bullets readable.",
+        "Do not add Q&A page unless requested.",
+        "No slide number."
+      ]
+    }
+  ]
+}

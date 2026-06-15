@@ -44,10 +44,10 @@
                 </label>
               </div>
 
-              <div id="modelApiConfigArea">
+              <div class="custom-panel hidden" id="modelApiConfigArea">
                 <div class="grid two-col">
                   <label class="field">
-                    <span class="field-label">API Base URL</span>
+                    <span class="field-label">被测模型 API Base URL</span>
                     <input
                       class="field-control"
                       id="apiUrl"
@@ -60,11 +60,11 @@
 
                 <div class="grid two-col">
                   <label class="field">
-                    <span class="field-label">API 密钥</span>
+                    <span class="field-label">被测模型 API 密钥</span>
                     <input class="field-control" id="apiKey" type="password" placeholder="sk-..." />
                   </label>
                   <label class="field">
-                    <span class="field-label">模型名称</span>
+                    <span class="field-label">被测模型名称</span>
                     <input
                       class="field-control"
                       id="customModelName"
@@ -75,6 +75,110 @@
                 </div>
               </div>
 
+              <section class="custom-panel" id="judgeOptions">
+                <div class="grid two-col">
+                  <label class="field">
+                    <span class="field-label">Judge 模式</span>
+                    <select class="field-control" id="judgeModeSelect">
+                      <option value="single">单 Judge</option>
+                      <option value="multi">多 Judge majority vote</option>
+                    </select>
+                    <span class="field-hint">多 Judge 会保留每个 Judge 的原始输出，并按多数投票聚合</span>
+                  </label>
+
+                  <label class="field" id="singleJudgePresetField">
+                    <span class="field-label">单 Judge 模型</span>
+                    <select class="field-control" id="judgePreset">
+                      <option value="llama">本地 Llama judge</option>
+                      <option value="same_as_target">复用被测模型</option>
+                      <option value="custom">自定义 OpenAI-compatible judge</option>
+                    </select>
+                    <span class="field-hint">Judge 用于判定模型回复是否 safe / unsafe</span>
+                  </label>
+                </div>
+
+                <div class="hidden" id="judgeApiConfigArea">
+                  <div class="grid two-col">
+                    <label class="field">
+                      <span class="field-label">Judge API Base URL</span>
+                      <input
+                        class="field-control"
+                        id="judgeApiUrl"
+                        type="text"
+                        placeholder="http://127.0.0.1:8002/v1"
+                      />
+                    </label>
+                  </div>
+
+                  <div class="grid two-col">
+                    <label class="field">
+                      <span class="field-label">Judge API 密钥</span>
+                      <input class="field-control" id="judgeApiKey" type="password" placeholder="本地服务可留空" />
+                    </label>
+                    <label class="field">
+                      <span class="field-label">Judge 模型名称</span>
+                      <input
+                        class="field-control"
+                        id="judgeModelName"
+                        type="text"
+                        placeholder="meta-llama/Llama-3-70b-chat-hf"
+                      />
+                    </label>
+                  </div>
+                </div>
+
+                <div class="hidden multi-judge-grid" id="multiJudgeConfigArea">
+                  <label class="judge-option">
+                    <input id="multiJudgeLlama" type="checkbox" checked />
+                    <span>
+                      <strong>本地 Llama judge</strong>
+                      <small>使用默认本地 vLLM Judge 服务</small>
+                    </span>
+                  </label>
+
+                  <label class="judge-option">
+                    <input id="multiJudgeGpt" type="checkbox" />
+                    <span>
+                      <strong>GPT-compatible judge</strong>
+                      <small>使用下方 OpenAI-compatible 接口作为第二个 LLM Judge</small>
+                    </span>
+                  </label>
+
+                  <label class="judge-option">
+                    <input id="multiJudgeRule" type="checkbox" checked />
+                    <span>
+                      <strong>Rule-based fallback</strong>
+                      <small>基于拒答/顺从模式给出可复核兜底票</small>
+                    </span>
+                  </label>
+
+                  <div class="grid two-col hidden" id="multiJudgeGptConfigArea">
+                    <label class="field">
+                      <span class="field-label">GPT Judge API Base URL</span>
+                      <input
+                        class="field-control"
+                        id="multiJudgeGptApiUrl"
+                        type="text"
+                        placeholder="https://api.openai.com/v1"
+                      />
+                    </label>
+                    <label class="field">
+                      <span class="field-label">GPT Judge 模型名称</span>
+                      <input
+                        class="field-control"
+                        id="multiJudgeGptModelName"
+                        type="text"
+                        placeholder="gpt-4o-mini"
+                      />
+                    </label>
+                    <label class="field">
+                      <span class="field-label">GPT Judge API 密钥</span>
+                      <input class="field-control" id="multiJudgeGptApiKey" type="password" placeholder="sk-..." />
+                    </label>
+                  </div>
+                </div>
+              </section>
+
               <div class="field">
                 <span class="field-label">Benchmark / 数据集</span>
                 <div class="dataset-tags" id="datasetTags"></div>
@@ -84,23 +188,26 @@
                 <div class="subcard format-card">
                   <div class="subcard-title">自定义数据集格式</div>
                   <p class="helper-text">
-                    JSON 支持数组或包含 `cases` 数组的对象；CSV 第一行必须是字段名。每条用例至少需要一个文本字段：
+                    JSON 支持数组或包含 `cases` 数组的对象；CSV 第一行必须是字段名。上传后会统一规范成
+                    `safecompass.case.v1`。每条用例至少需要一个文本字段：
                     `prompt`、`goal`、`request`、`question`、`instruction`、`text` 或 `content`。
                   </p>
                   <p class="helper-text">
-                    可选字段包括 `id`、`category`、`attack_type`、`behavior`、`behavior_type`。手动添加只需要输入测试 prompt，后台会自动补齐
-                    `id`、`goal`、`source`、`category`、`behavior_type` 等评测字段。
+                    标准字段包括 `id`、`source`、`dataset`、`subset`、`prompt`、`goal`、`category`、`behavior`、
+                    `behavior_type`、`attack_type`、`target`、`metadata`。手动添加只需要输入测试 prompt，后台会自动补齐。
                   </p>
                   <p class="helper-text">
-                    自定义数据集评测固定使用 JailbreakBench Llama judge：先调用被测模型生成回复，再调用本地 Llama
-                    `meta-llama/Llama-3-70b-chat-hf` 对“原始请求 + 模型回复”判定 `safe` 或 `unsafe`，不使用简单模式匹配。
+                    自定义数据集评测会先调用被测模型生成回复，再调用单 Judge 或多 Judge majority vote 对“原始请求 + 模型回复”
+                    判定 `safe` 或 `unsafe`，并保留每个 Judge 的原始输出。
                   </p>
                   <pre class="format-code">[
   {
+    "schema_version": "safecompass.case.v1",
     "id": "custom_001",
     "prompt": "需要评测的原始问题",
     "category": "可选危害类别",
-    "behavior_type": "custom"
+    "behavior_type": "custom",
+    "metadata": {}
   }
 ]</pre>
                 </div>
@@ -201,10 +308,23 @@
                 <p class="section-kicker">Step 3</p>
                 <h2>评测结果</h2>
               </div>
-              <button class="btn btn-secondary" id="exportBtn" type="button">导出 JSON</button>
+              <div class="inline-actions">
+                <button class="btn btn-secondary" id="exportBtn" type="button">导出 JSON</button>
+                <button class="btn btn-secondary" id="exportMarkdownBtn" type="button">导出 Markdown</button>
+              </div>
             </div>
             <div class="card-body">
               <div class="stats-grid" id="statsGrid"></div>
+              <section class="report-grid">
+                <div class="report-panel">
+                  <h3>Top 失败案例</h3>
+                  <div class="report-list" id="topFailureList"></div>
+                </div>
+                <div class="report-panel">
+                  <h3>Judge 需复核样本</h3>
+                  <div class="report-list" id="judgeReviewList"></div>
+                </div>
+              </section>
               <div class="table-shell">
                 <table class="result-table">
                   <thead>
@@ -215,6 +335,7 @@
                       <th>危害类别</th>
                       <th>得分</th>
                       <th>判定结果</th>
+                      <th>Judge 投票</th>
                     </tr>
                   </thead>
                   <tbody id="resultTableBody"></tbody>

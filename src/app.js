@@ -1,8 +1,14 @@
 import { datasetOptions } from "./config/datasets.js";
-import { attackStrategyOptions } from "./services/attack-strategies.js";
-import { exportJson } from "./services/exporter.js";
-import { createApiEvaluator } from "./services/evaluator.js";
-import { loadBenchmarkCases } from "./services/benchmark-loader.js";
+import { attackStrategyOptions } from "./attacks/strategies.js";
+import { createApiEvaluator } from "./api/evaluation-client.js";
+import { loadBenchmarkCases } from "./benchmarks/loader.js";
+import { CASE_TEXT_FIELDS, hasCaseTextField, normalizeSafeCompassCase } from "./domain/case-schema.js";
+import { exportJson, exportMarkdown } from "./reporting/downloads.js";
+import {
+  buildMarkdownReport,
+  getJudgeReviewCases,
+  getTopFailureCases
+} from "./reporting/report-builder.js";
 import { createStore } from "./state/store.js";
 import { $, createOptions, escapeHtml } from "./utils/dom.js";
 import { formatTimestamp, summarizeResults } from "./utils/format.js";
@@ -12,17 +18,14 @@ const LOCAL_LLAMA_API_URL = "http://127.0.0.1:8002/v1";
 const LOCAL_LLAMA_MODEL_NAME = "meta-llama/Llama-3-70b-chat-hf";
 const LOCAL_LLAMA_MAX_TOKENS = 512;
 const ATTACK_FAMILY = "prompt_modification";
-const CUSTOM_PROMPT_FIELDS = [
-  "prompt",
-  "goal",
-  "request",
-  "question",
-  "instruction",
-  "text",
-  "content"
-];
 const PLOT_COLORS = ["#3f8fc2", "#df4548", "#55a868", "#f0ad4e", "#8172b3", "#4c9f9f"];
 const PLOT_FONT = '"Segoe UI", "PingFang SC", "Microsoft YaHei", Arial, sans-serif';
+const REPORT_CHARTS = [
+  { value: "category_rank_asr", title: "危害类别 ASR 排名柱状图" },
+  { value: "model_category_heatmap", title: "模型 × 危害类别 ASR" },
+  { value: "model_radar", title: "模型风险雷达图" },
+  { value: "success_pareto", title: "攻击成功样本 Pareto 图" }
+];
 
 function getInitialFormValues() {
   return {
@@ -30,6 +33,17 @@ function getInitialFormValues() {
     apiUrl: "",
     apiKey: "",
     customModelName: "",
+    judgeMode: "single",
+    judgePreset: "llama",
+    judgeApiUrl: "",
+    judgeApiKey: "",
+    judgeModelName: "",
+    multiJudgeLlama: true,
+    multiJudgeGpt: false,
+    multiJudgeRule: true,
+    multiJudgeGptApiUrl: "",
+    multiJudgeGptApiKey: "",
+    multiJudgeGptModelName: "",
     caseLimit: "20",
     datasetSubsets: {
       jailbreakbench: "harmful",
@@ -40,41 +54,15 @@ function getInitialFormValues() {
   };
 }
 
-function getFirstString(record, keys) {
-  for (const key of keys) {
-    if (typeof record?.[key] === "string" && record[key].trim()) {
-      return record[key].trim();
-    }
-  }
-  return "";
-}
-
 function normalizeCustomInputCase(item, index, idPrefix) {
-  const record =
-    typeof item === "string"
-      ? { prompt: item }
-      : item && typeof item === "object"
-        ? item
-        : {};
-  const prompt = getFirstString(record, CUSTOM_PROMPT_FIELDS);
-
-  if (!prompt) {
-    throw new Error(
-      `第 ${index + 1} 条自定义用例缺少 prompt/goal/request/question/instruction/text/content 字段`
-    );
-  }
-
-  return {
-    ...record,
-    id: String(record.id || record.case_id || `${idPrefix}_${index}`),
-    prompt,
-    goal: getFirstString(record, ["goal", ...CUSTOM_PROMPT_FIELDS]) || prompt,
-    source: record.source || "自定义",
-    attack_type: record.attack_type || record.attack || "-",
-    category: record.category || record.harm_category || "-",
-    behavior: record.behavior || record.behavior_id || "-",
-    behavior_type: record.behavior_type || "custom"
-  };
+  return normalizeSafeCompassCase(item, {
+    dataset: "custom",
+    source: "自定义",
+    subset: null,
+    idPrefix,
+    index,
+    behaviorType: "custom"
+  });
 }
 
 function parseCsvRows(content) {
@@ -126,9 +114,8 @@ function parseCsv(content) {
   }
 
   const headers = rows[0].map((item) => item.trim());
-  const hasPromptField = headers.some((header) => CUSTOM_PROMPT_FIELDS.includes(header));
-  if (!hasPromptField) {
-    throw new Error("CSV 需要包含 prompt 或 goal/request/question/instruction/text/content 列");
+  if (!hasCaseTextField(headers)) {
+    throw new Error(`CSV 需要包含 ${CASE_TEXT_FIELDS.join("/")} 列之一`);
   }
 
   return rows.slice(1).map((columns, index) => {
@@ -162,6 +149,21 @@ export function bootstrapApp() {
     apiUrl: $("#apiUrl"),
     apiKey: $("#apiKey"),
     customModelName: $("#customModelName"),
+    judgeModeSelect: $("#judgeModeSelect"),
+    singleJudgePresetField: $("#singleJudgePresetField"),
+    judgePreset: $("#judgePreset"),
+    judgeApiConfigArea: $("#judgeApiConfigArea"),
+    judgeApiUrl: $("#judgeApiUrl"),
+    judgeApiKey: $("#judgeApiKey"),
+    judgeModelName: $("#judgeModelName"),
+    multiJudgeConfigArea: $("#multiJudgeConfigArea"),
+    multiJudgeLlama: $("#multiJudgeLlama"),
+    multiJudgeGpt: $("#multiJudgeGpt"),
+    multiJudgeRule: $("#multiJudgeRule"),
+    multiJudgeGptConfigArea: $("#multiJudgeGptConfigArea"),
+    multiJudgeGptApiUrl: $("#multiJudgeGptApiUrl"),
+    multiJudgeGptApiKey: $("#multiJudgeGptApiKey"),
+    multiJudgeGptModelName: $("#multiJudgeGptModelName"),
     benchmarkOptions: $("#benchmarkOptions"),
     benchmarkSubsetSelect: $("#benchmarkSubsetSelect"),
     datasetTags: $("#datasetTags"),
@@ -184,10 +186,13 @@ export function bootstrapApp() {
     progressStatus: $("#progressStatus"),
     resultCard: $("#resultCard"),
     statsGrid: $("#statsGrid"),
+    topFailureList: $("#topFailureList"),
+    judgeReviewList: $("#judgeReviewList"),
     chartTypeSelect: $("#chartTypeSelect"),
     resultChartCanvas: $("#resultChartCanvas"),
     resultTableBody: $("#resultTableBody"),
     exportBtn: $("#exportBtn"),
+    exportMarkdownBtn: $("#exportMarkdownBtn"),
     clearLogBtn: $("#clearLogBtn"),
     logArea: $("#logArea")
   };
@@ -206,10 +211,22 @@ export function bootstrapApp() {
     elements.apiUrl.value = initialForm.apiUrl;
     elements.apiKey.value = initialForm.apiKey;
     elements.customModelName.value = initialForm.customModelName;
+    elements.judgeModeSelect.value = initialForm.judgeMode;
+    elements.judgePreset.value = initialForm.judgePreset;
+    elements.judgeApiUrl.value = initialForm.judgeApiUrl;
+    elements.judgeApiKey.value = initialForm.judgeApiKey;
+    elements.judgeModelName.value = initialForm.judgeModelName;
+    elements.multiJudgeLlama.checked = initialForm.multiJudgeLlama;
+    elements.multiJudgeGpt.checked = initialForm.multiJudgeGpt;
+    elements.multiJudgeRule.checked = initialForm.multiJudgeRule;
+    elements.multiJudgeGptApiUrl.value = initialForm.multiJudgeGptApiUrl;
+    elements.multiJudgeGptApiKey.value = initialForm.multiJudgeGptApiKey;
+    elements.multiJudgeGptModelName.value = initialForm.multiJudgeGptModelName;
     elements.caseLimit.value = initialForm.caseLimit;
     elements.attackStrategySelect.innerHTML = createOptions(attackStrategyOptions);
     elements.attackStrategySelect.value = initialForm.attackStrategy;
     renderModelConfigArea();
+    renderJudgeConfigArea();
   }
 
   function getSelectedOptionLabel(select) {
@@ -283,6 +300,18 @@ export function bootstrapApp() {
   function renderModelConfigArea() {
     const customModel = elements.modelPreset.value === "custom";
     elements.modelApiConfigArea.classList.toggle("hidden", !customModel);
+  }
+
+  function renderJudgeConfigArea() {
+    const multiJudge = elements.judgeModeSelect.value === "multi";
+    const customJudge = !multiJudge && elements.judgePreset.value === "custom";
+    elements.singleJudgePresetField.classList.toggle("hidden", multiJudge);
+    elements.judgeApiConfigArea.classList.toggle("hidden", !customJudge);
+    elements.multiJudgeConfigArea.classList.toggle("hidden", !multiJudge);
+    elements.multiJudgeGptConfigArea.classList.toggle(
+      "hidden",
+      !multiJudge || !elements.multiJudgeGpt.checked
+    );
   }
 
   function renderDatasetTags() {
@@ -455,6 +484,11 @@ export function bootstrapApp() {
 
   function truncateLabel(value, maxLength = 18) {
     const text = String(value || "-");
+    return text.length > maxLength ? `${text.slice(0, Math.max(1, maxLength - 3))}...` : text;
+  }
+
+  function truncateText(value, maxLength = 120) {
+    const text = String(value || "-").replace(/\s+/g, " ").trim();
     return text.length > maxLength ? `${text.slice(0, Math.max(1, maxLength - 3))}...` : text;
   }
 
@@ -1214,6 +1248,25 @@ export function bootstrapApp() {
     drawCategoryRankPlot(results);
   }
 
+  async function captureReportCharts(results) {
+    const previousChartType = elements.chartTypeSelect.value || "category_rank_asr";
+    const charts = [];
+
+    for (const chart of REPORT_CHARTS) {
+      elements.chartTypeSelect.value = chart.value;
+      renderSelectedChart(results);
+      await new Promise((resolve) => window.requestAnimationFrame(resolve));
+      charts.push({
+        title: chart.title,
+        dataUrl: elements.resultChartCanvas.toDataURL("image/png")
+      });
+    }
+
+    elements.chartTypeSelect.value = previousChartType;
+    renderSelectedChart(results);
+    return charts;
+  }
+
   function renderDatasetArea() {
     const { currentDataset } = store.getState();
     const benchmarkVisible = isRegisteredBenchmark(currentDataset);
@@ -1228,6 +1281,51 @@ export function bootstrapApp() {
     renderBenchmarkFilters().catch((error) => {
       addLog(`Benchmark 筛选项加载失败: ${error.message}`);
     });
+  }
+
+  function renderReportPanels(results) {
+    const topFailures = getTopFailureCases(results, 6);
+    elements.topFailureList.innerHTML = topFailures.length
+      ? topFailures
+          .map(
+            (item) => `
+              <div class="report-item">
+                <div class="report-item-title">
+                  <span>${escapeHtml(item.id)}</span>
+                  <span class="score-unsafe">${escapeHtml(item.score)}</span>
+                </div>
+                <div class="report-item-meta">${escapeHtml(item.category || "未分类")} · ${escapeHtml(item.result || "unsafe")}</div>
+                <div class="report-item-text">${escapeHtml(truncateText(item.prompt, 130))}</div>
+              </div>
+            `
+          )
+          .join("")
+      : '<div class="muted">暂无失败案例</div>';
+
+    const reviewCases = getJudgeReviewCases(results, 6);
+    elements.judgeReviewList.innerHTML = reviewCases.length
+      ? reviewCases
+          .map((item) => {
+            const votes = Array.isArray(item.judge_votes) ? item.judge_votes : [];
+            const voteSummary = votes.length
+              ? votes.map((vote) => `${vote.name || vote.id}: ${vote.status === "error" ? "error" : vote.label}`).join(" | ")
+              : item.judge_label || "-";
+            const agreement = Number.isFinite(Number(item.judge_agreement))
+              ? formatPercent(Number(item.judge_agreement) * 100, 0)
+              : "-";
+            return `
+              <div class="report-item">
+                <div class="report-item-title">
+                  <span>${escapeHtml(item.id)}</span>
+                  <span class="score-ambiguous">${escapeHtml(item.label)}</span>
+                </div>
+                <div class="report-item-meta">${escapeHtml(`一致率 ${agreement} · unknown ${item.judge_unknown_votes || 0} · error ${item.judge_error_votes || 0}`)}</div>
+                <div class="report-item-text">${escapeHtml(truncateText(voteSummary, 150))}</div>
+              </div>
+            `;
+          })
+          .join("")
+      : '<div class="muted">暂无 Judge 分歧或不确定样本</div>';
   }
 
   function renderResults(results) {
@@ -1248,6 +1346,16 @@ export function bootstrapApp() {
             : item.label === "unsafe"
               ? "score-unsafe"
               : "score-ambiguous";
+        const judgeVotes = Array.isArray(item.judge_votes) ? item.judge_votes : [];
+        const judgeSummary = judgeVotes.length
+          ? judgeVotes
+              .map((vote) => `${vote.name || vote.id}: ${vote.status === "error" ? "error" : vote.label}`)
+              .join(" | ")
+          : item.judge_model || "-";
+        const agreement =
+          Number.isFinite(Number(item.judge_agreement))
+            ? `${Math.round(Number(item.judge_agreement) * 100)}%`
+            : "-";
 
         return `
           <tr>
@@ -1256,12 +1364,17 @@ export function bootstrapApp() {
             <td>${escapeHtml(item.attack_strategy_label || item.attack_type || "-")}</td>
             <td>${escapeHtml(item.category || "-")}</td>
             <td class="${scoreClass}">${escapeHtml(item.score)}</td>
-            <td class="${scoreClass}">${escapeHtml(item.result)}</td>
+            <td class="${scoreClass}">${escapeHtml(item.error?.message || item.result)}</td>
+            <td>
+              <div>${escapeHtml(`${item.judge_safe_votes ?? 0} safe / ${item.judge_unsafe_votes ?? 0} unsafe`)}</div>
+              <div class="judge-votes">${escapeHtml(`一致率 ${agreement} | ${judgeSummary}`)}</div>
+            </td>
           </tr>
         `;
       })
       .join("");
 
+    renderReportPanels(results);
     elements.resultCard.classList.remove("hidden");
     window.requestAnimationFrame(() => renderSelectedChart(results));
   }
@@ -1269,6 +1382,7 @@ export function bootstrapApp() {
   function collectModelConfig() {
     if (elements.modelPreset.value === "llama") {
       return {
+        preset: "llama",
         modelName: LOCAL_LLAMA_MODEL_NAME,
         apiUrl: LOCAL_LLAMA_API_URL,
         apiKey: ""
@@ -1276,13 +1390,92 @@ export function bootstrapApp() {
     }
 
     return {
+      preset: "custom",
       modelName: elements.customModelName.value.trim(),
       apiUrl: elements.apiUrl.value.trim(),
       apiKey: elements.apiKey.value.trim()
     };
   }
 
+  function collectJudgeConfig(targetModelConfig) {
+    if (elements.judgeModeSelect.value === "multi") {
+      const judges = [];
+      if (elements.multiJudgeLlama.checked) {
+        judges.push({
+          id: "llama",
+          name: "Local Llama judge",
+          preset: "llama",
+          type: "llm",
+          mode: "official_jbb",
+          apiUrl: LOCAL_LLAMA_API_URL,
+          apiKey: "",
+          modelName: LOCAL_LLAMA_MODEL_NAME
+        });
+      }
+      if (elements.multiJudgeGpt.checked) {
+        judges.push({
+          id: "gpt_compatible",
+          name: "GPT-compatible judge",
+          preset: "custom",
+          type: "llm",
+          mode: "official_jbb",
+          apiUrl: elements.multiJudgeGptApiUrl.value.trim(),
+          apiKey: elements.multiJudgeGptApiKey.value.trim(),
+          modelName: elements.multiJudgeGptModelName.value.trim()
+        });
+      }
+      if (elements.multiJudgeRule.checked) {
+        judges.push({
+          id: "rule_based",
+          name: "Rule-based fallback",
+          preset: "rule_based",
+          type: "rule_based",
+          mode: "rule_based",
+          modelName: "safecompass-rule-based"
+        });
+      }
+
+      return {
+        preset: "multi",
+        mode: "multi_judge",
+        aggregation: "majority_vote",
+        primaryJudgeId: judges.find((judge) => judge.type === "llm")?.id || judges[0]?.id || null,
+        judges
+      };
+    }
+
+    if (elements.judgePreset.value === "same_as_target") {
+      return {
+        preset: "same_as_target",
+        mode: "official_jbb",
+        apiUrl: targetModelConfig.apiUrl,
+        apiKey: targetModelConfig.apiKey,
+        modelName: targetModelConfig.modelName
+      };
+    }
+
+    if (elements.judgePreset.value === "custom") {
+      return {
+        preset: "custom",
+        mode: "official_jbb",
+        apiUrl: elements.judgeApiUrl.value.trim(),
+        apiKey: elements.judgeApiKey.value.trim(),
+        modelName: elements.judgeModelName.value.trim()
+      };
+    }
+
+    return {
+      preset: "llama",
+      mode: "official_jbb",
+      apiUrl: LOCAL_LLAMA_API_URL,
+      apiKey: "",
+      modelName: LOCAL_LLAMA_MODEL_NAME
+    };
+  }
+
   function collectEvaluationOptions() {
+    const targetModelConfig = collectModelConfig();
+    const judgeConfig = collectJudgeConfig(targetModelConfig);
     return {
       limit: Number(elements.caseLimit.value || 20),
       temperature: 0,
@@ -1293,12 +1486,61 @@ export function bootstrapApp() {
       filters: {
         category: elements.categoryFilter.value
       },
-      judge: {
-        mode: "official_jbb",
-        apiUrl: LOCAL_LLAMA_API_URL,
-        apiKey: "",
-        modelName: LOCAL_LLAMA_MODEL_NAME
+      judge: judgeConfig
+    };
+  }
+
+  function getJudgeConfigSummary(judgeConfig) {
+    if (judgeConfig.mode === "multi_judge") {
+      const names = (judgeConfig.judges || []).map((judge) => judge.name || judge.modelName || judge.id);
+      return `多 Judge majority vote: ${names.join(" / ") || "未配置"}`;
+    }
+    return `单 Judge: ${judgeConfig.modelName || judgeConfig.preset || "未配置"}`;
+  }
+
+  function getConfiguredJudgeModels(judgeConfig) {
+    if (judgeConfig.mode === "multi_judge") {
+      return (judgeConfig.judges || [])
+        .map((judge) => judge.modelName || judge.name || judge.id)
+        .filter(Boolean)
+        .join(", ");
+    }
+    return judgeConfig.modelName || "";
+  }
+
+  function validateJudgeConfig(judgeConfig) {
+    if (judgeConfig.mode === "multi_judge") {
+      const judges = judgeConfig.judges || [];
+      if (!judges.length) {
+        return "请至少选择一个 Judge";
       }
+      const invalidJudge = judges.find(
+        (judge) => judge.type !== "rule_based" && (!judge.apiUrl || !judge.modelName)
+      );
+      if (invalidJudge) {
+        return `${invalidJudge.name || invalidJudge.id} 缺少 API Base URL 或模型名称`;
+      }
+      return "";
+    }
+    if (!judgeConfig.apiUrl) {
+      return "请填写 Judge API Base URL";
+    }
+    if (!judgeConfig.modelName) {
+      return "请填写 Judge 模型名称";
+    }
+    return "";
+  }
+
+  function buildExportContext() {
+    const targetModelConfig = collectModelConfig();
+    const evaluationOptions = collectEvaluationOptions();
+    const currentDataset = store.getState().currentDataset;
+    return {
+      targetModelConfig,
+      judgeConfig: evaluationOptions.judge,
+      evaluationOptions,
+      dataset: currentDataset,
+      datasetSubset: getSelectedDatasetSubset(currentDataset)
     };
   }
 
@@ -1344,14 +1586,21 @@ export function bootstrapApp() {
 
     const modelConfig = collectModelConfig();
     const evaluationOptions = collectEvaluationOptions();
+    const judgeConfig = evaluationOptions.judge || {};
     if (!modelConfig.apiUrl) {
-      addLog("缺少 API Base URL");
-      window.alert("请填写 API Base URL");
+      addLog("缺少被测模型 API Base URL");
+      window.alert("请填写被测模型 API Base URL");
       return;
     }
     if (!modelConfig.modelName) {
-      addLog("缺少模型名称");
-      window.alert("请填写模型名称");
+      addLog("缺少被测模型名称");
+      window.alert("请填写被测模型名称");
+      return;
+    }
+    const judgeConfigError = validateJudgeConfig(judgeConfig);
+    if (judgeConfigError) {
+      addLog(judgeConfigError);
+      window.alert(judgeConfigError);
       return;
     }
 
@@ -1365,12 +1614,13 @@ export function bootstrapApp() {
     store.setState({ isRunning: true, results: [] });
     elements.progressCard.classList.remove("hidden");
     elements.resultCard.classList.add("hidden");
+    elements.progressFill.dataset.percent = "0";
     elements.progressFill.style.width = "0%";
-    elements.progressStatus.textContent = "准备执行评测";
+    elements.progressStatus.textContent = "评测进度 0%";
 
     const datasetSubset = getSelectedDatasetSubset(currentDataset);
     addLog(
-      `开始评测，模型 ${modelConfig.modelName}，数据集 ${currentDataset}${datasetSubset ? `/${datasetSubset}` : ""}`
+      `开始评测，被测模型 ${modelConfig.modelName}，数据集 ${currentDataset}${datasetSubset ? `/${datasetSubset}` : ""}`
     );
     addLog(
       `评测参数: 最大样本 ${evaluationOptions.limit}`
@@ -1384,9 +1634,14 @@ export function bootstrapApp() {
     if (evaluationOptions.attackStrategy === "human_jailbreaks") {
       addLog("Human Jailbreaks 使用 HarmBench 官方模板，并会跳过估算超过 2048 上下文预算的超长模板");
     }
-    addLog("判分方式: JailbreakBench Llama judge");
-    addLog(modelConfig.apiKey ? "检测到 API 密钥" : "未提供 API 密钥，默认视为本地或免鉴权服务");
-    addLog(`Judge 模型: ${evaluationOptions.judge.modelName}`);
+    addLog(`判分方式: ${getJudgeConfigSummary(judgeConfig)}`);
+    addLog(modelConfig.apiKey ? "检测到被测模型 API 密钥" : "被测模型未提供 API 密钥，默认视为本地或免鉴权服务");
+    const hasJudgeApiKey =
+      judgeConfig.mode === "multi_judge"
+        ? (judgeConfig.judges || []).some((judge) => judge.apiKey)
+        : Boolean(judgeConfig.apiKey);
+    addLog(hasJudgeApiKey ? "检测到 Judge API 密钥" : "Judge 未提供 API 密钥，默认视为本地或免鉴权服务");
+    addLog(`Judge 模型: ${getConfiguredJudgeModels(judgeConfig) || "rule-based"}`);
 
     if (isRegisteredBenchmark(currentDataset)) {
       const benchmark = getBenchmark(currentDataset);
@@ -1401,6 +1656,7 @@ export function bootstrapApp() {
         customCases,
         datasetSubset,
         modelConfig,
+        targetModelConfig: modelConfig,
         evaluationOptions,
         onProgress(progress) {
           const progressInfo =
@@ -1410,11 +1666,12 @@ export function bootstrapApp() {
                   message: `正在执行评测... ${progress}%`
                 }
               : progress || {};
-          const percent = clamp(Number(progressInfo.percent || 0), 0, 100);
+          const currentPercent = Number.parseFloat(elements.progressFill.dataset.percent || "0");
+          const nextPercent = clamp(Number(progressInfo.percent || 0), 0, 100);
+          const percent = Math.max(currentPercent, nextPercent);
+          elements.progressFill.dataset.percent = String(percent);
           elements.progressFill.style.width = `${percent}%`;
-          elements.progressStatus.textContent =
-            progressInfo.message ||
-            `正在执行评测 ${progressInfo.completed || 0}/${progressInfo.total || 0}`;
+          elements.progressStatus.textContent = `评测进度 ${Math.round(percent)}%`;
         }
       });
 
@@ -1424,7 +1681,10 @@ export function bootstrapApp() {
 
       const summary = summarizeResults(results);
       const asr = summary.total ? ((summary.unsafe / summary.total) * 100).toFixed(1) : "0.0";
-      addLog(`评测完成，ASR ${asr}%`);
+      addLog(`评测完成，ASR ${asr}%${summary.ambiguous ? `，需复核 ${summary.ambiguous} 条` : ""}`);
+      if (results.runId || results.runPath) {
+        addLog(`运行记录已保存: ${results.runPath || results.runId}`);
+      }
     } catch (error) {
       store.setState({ isRunning: false, results: [] });
       elements.progressCard.classList.add("hidden");
@@ -1510,6 +1770,9 @@ export function bootstrapApp() {
 
     elements.runBtn.addEventListener("click", handleRun);
     elements.modelPreset.addEventListener("change", renderModelConfigArea);
+    elements.judgeModeSelect.addEventListener("change", renderJudgeConfigArea);
+    elements.judgePreset.addEventListener("change", renderJudgeConfigArea);
+    elements.multiJudgeGpt.addEventListener("change", renderJudgeConfigArea);
     elements.chartTypeSelect.addEventListener("change", () => {
       renderSelectedChart(store.getState().results || []);
     });
@@ -1531,16 +1794,31 @@ export function bootstrapApp() {
       addLog("日志已清空");
     });
     elements.exportBtn.addEventListener("click", () => {
+      const results = store.getState().results || [];
+      const exportContext = buildExportContext();
       const payload = {
         exportedAt: new Date().toISOString(),
-        config: collectModelConfig(),
-        evaluationOptions: collectEvaluationOptions(),
-        dataset: store.getState().currentDataset,
-        datasetSubset: getSelectedDatasetSubset(store.getState().currentDataset),
-        results: store.getState().results
+        config: exportContext.targetModelConfig,
+        ...exportContext,
+        runId: results.runId || null,
+        runPath: results.runPath || null,
+        results
       };
       exportJson("safecompass-results.json", payload);
       addLog("已导出结果 JSON");
+    });
+    elements.exportMarkdownBtn.addEventListener("click", async () => {
+      const results = store.getState().results || [];
+      const exportedAt = new Date().toISOString();
+      const charts = await captureReportCharts(results);
+      const report = buildMarkdownReport({
+        results,
+        config: buildExportContext(),
+        exportedAt,
+        charts
+      });
+      exportMarkdown("safecompass-report.md", report);
+      addLog("已导出 Markdown 报告");
     });
   }
 

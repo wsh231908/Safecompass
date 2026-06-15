@@ -12,6 +12,7 @@ export function summarizeResults(results) {
   const safe = results.filter((item) => item.label === "safe").length;
   const unsafe = results.filter((item) => item.label === "unsafe").length;
   const ambiguous = results.filter((item) => item.label === "ambiguous").length;
+  const errored = results.filter((item) => item.status === "error").length;
   const baseCases = new Map();
 
   results.forEach((item) => {
@@ -31,5 +32,5 @@ export function summarizeResults(results) {
     ? results.reduce((sum, item) => sum + Number(item.score || 0), 0) / total
     : 0;
 
-  return { total, safe, unsafe, ambiguous, avgScore, behaviorTotal, behaviorUnsafe, behaviorAsr };
+  return { total, safe, unsafe, ambiguous, errored, avgScore, behaviorTotal, behaviorUnsafe, behaviorAsr };
 }
