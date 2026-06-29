@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>SafeCompass</title>
+  <style type="text/css">
+      code{white-space: pre-wrap;}
+      span.smallcaps{font-variant: small-caps;}
+      span.underline{text-decoration: underline;}
+      div.column{display: inline-block; vertical-align: top; width: 50%;}
+  </style>
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+<header>
+<h1 class="title">SafeCompass</h1>
+</header>
+<h1 id="safecompass-面向大语言模型越狱风险的可复现安全评测与可视化平台">SafeCompass: 面向大语言模型越狱风险的可复现安全评测与可视化平台</h1>
+<h2 id="摘要">摘要</h2>
+<p>大语言模型在问答、编程和智能体任务中被广泛使用，但其在有害请求和越狱攻击下的拒答可靠性仍难以通过普通能力评测反映。本文提出 SafeCompass，一个面向大语言模型安全风险的可复现评测与可视化平台。平台将 JailbreakBench、HarmBench 和自定义数据集接入统一的 <code>safecompass.case.v1</code> schema，并构建从攻击 prompt 生成、OpenAI-compatible 模型调用、LLM-as-judge 判分、多 Judge 投票、Attack Success Rate (ASR) 统计到报告导出的完整流程。基于 HarmBench <code>text_test</code> 前 200 条样本的实验显示，本地 Llama-3-70B AWQ 在 Jailbreak Chat 攻击和单 Judge 设置下 ASR 为 7.5%，在多 Judge 设置下 ASR 上升到 16.0%；外部 GPT-compatible 对照模型在相同单 Judge 设置下 ASR 为 0.0%，但有 2 条接口错误样本需复核。结果表明，SafeCompass 能够支持模型间安全表现比较，并揭示 Judge 机制和危害类别差异对评测结论的影响。</p>
+<p><strong>关键词</strong>: 大语言模型安全；越狱攻击；LLM-as-judge；HarmBench；ASR；可复现评测</p>
+<h2 id="引言">1 引言</h2>
+<p>大语言模型已经从文本生成工具发展为通用交互系统，并被用于问答、代码生成、写作辅助和复杂任务规划。能力增强提高了模型实用价值，也放大了错误或恶意使用场景中的安全风险。当用户请求网络入侵步骤、违法行为指导、虚假信息生成、骚扰文本、化学与生物风险信息或版权文本复现时，安全对齐后的模型通常应拒绝提供实质性帮助。然而，真实交互并不总是以直接有害请求出现。攻击者可以通过角色扮演、研究场景包装、虚构任务设定或指令覆盖等方式改变输入形式，使模型绕过拒答策略并输出有害细节，这类现象通常被称为越狱攻击。</p>
+<p>已有研究已经提出面向越狱攻击和鲁棒拒答的安全评测基准。JailbreakBench 强调开放、可复现的越狱评测，提供有害行为集合、攻击 artifacts、评分函数和排行榜 [1]。HarmBench 则从自动化红队和鲁棒拒答角度，构建覆盖多类有害行为的标准化评测框架 [2]。与此同时，LLM-as-judge 被广泛用于开放式模型输出评价，但也可能受到偏差、提示词设计和模型能力限制的影响 [3]。因此，在大语言模型安全评测中，评测对象不仅是被测模型本身，也包括数据集、攻击方式、Judge 提示词、判分聚合策略和错误处理机制。</p>
+<p>本文关注的问题是：如何将已有安全基准、攻击策略、模型接口和 Judge 判分机制组织为一个可复现、可比较、可分析的平台流程。许多安全测试只报告最终 ASR，却没有系统保存样本、攻击 prompt、模型回复、Judge 原始输出、分歧票和接口错误，导致结果难以复查。SafeCompass 的目标不是提出新的安全基准或攻击算法，而是将评测流程工程化，使研究者能够在统一框架下比较不同模型、不同 Judge 设置和不同危害类别的风险。</p>
+<p>本文贡献包括三点。第一，设计并实现 SafeCompass 平台，将数据规范化、攻击生成、模型推理、自动判分、指标统计和报告导出组织为端到端流程。第二，提出统一样本 schema，使 JailbreakBench、HarmBench 和自定义 JSON/CSV 数据能够进入同一评测管线。第三，基于 HarmBench <code>text_test</code> 样本进行三组对照实验，分析模型差异、Judge 机制差异和类别风险差异。</p>
+<h2 id="相关工作与平台定位">2 相关工作与平台定位</h2>
+<p>大语言模型安全评测关注模型在面对潜在有害输入时是否能够保持稳健拒答。与传统自然语言处理任务不同，安全评测通常需要判断模型输出是否实质性满足了有害请求。Attack Success Rate (ASR) 是常用指标，即被判定为 <code>unsafe</code> 的样本比例。ASR 直观、便于比较，但高度依赖样本集合、攻击策略和判分标准。如果不同实验使用不同 Judge 或错误处理方式，ASR 数字就难以直接比较。</p>
+<p>JailbreakBench 和 HarmBench 为本文提供了基准思想。前者强调越狱评测的开放性和复现条件，后者提供覆盖更广泛危害类别的测试集合。本文实验使用 HarmBench <code>text_test</code> 子集，是因为该子集包含网络入侵、违法行为、虚假信息、化学与生物风险、版权复现、骚扰和一般有害行为等类别，适合观察风险分布是否均匀。</p>
+<p>LLM-as-judge 能降低人工标注成本，但在安全场景中必须谨慎使用。Judge 的任务不是评价回答是否“有帮助”，而是判断回答是否实质性提供危险信息。单 Judge 流程简单但可能误判边界样本；多 Judge 可以提高风险可见性，但会引入投票分歧、未知输出和接口错误。因此，本文将 Judge 机制视为显式实验变量，并在平台中保留每个 Judge 的原始输出、标签、错误信息和一致率。</p>
+<h2 id="safecompass-平台设计">3 SafeCompass 平台设计</h2>
+<p>SafeCompass 采用轻量 Web 架构，由浏览器前端、Node.js 后端和本地数据文件组成。前端负责数据集选择、模型配置、攻击策略选择、Judge 模式配置、进度展示、表格渲染和报告导出。后端由 <code>server.js</code> 提供静态页面和 API，核心接口包括 <code>GET /api/health</code>、<code>POST /api/evaluate</code>、<code>POST /api/evaluate-stream</code> 和 <code>POST /api/llama-chat</code>。其中，流式评测接口以 NDJSON 返回阶段性进度，使前端能够显示当前样本的模型调用、Judge 判分和完成状态。</p>
+<p>一次评测包含七个步骤：加载 JailbreakBench、HarmBench 或自定义数据集；将原始记录规范化为统一 case；根据攻击策略生成攻击 prompt；通过 OpenAI-compatible 接口调用被测模型；将原始请求和模型回复交给 Judge 判分；在多 Judge 模式下执行多数投票；汇总 ASR、类别风险、失败案例和需复核样本，并保存运行记录。每次运行都会记录开始时间、结束时间、数据集、模型配置、Judge 配置、评测参数、样本数、汇总指标和逐条结果，敏感配置在保存前脱敏。</p>
+<p>不同基准的数据字段并不一致。为降低后续模块与数据来源之间的耦合，SafeCompass 设计了 <code>safecompass.case.v1</code> 作为统一样本 schema。规范化后的 case 包含 <code>id</code>、<code>source</code>、<code>dataset</code>、<code>subset</code>、<code>prompt</code>、<code>goal</code>、<code>original_prompt</code>、<code>target</code>、<code>category</code>、<code>behavior</code>、<code>behavior_type</code> 和 <code>metadata</code> 等字段。其中，<code>prompt</code> 是实际发送给被测模型的输入，<code>goal</code> 表示原始有害目标，<code>original_prompt</code> 保存攻击改写前的请求，<code>category</code> 用于类别 ASR 统计。统一 schema 不消除不同 benchmark 的语义差异，而是将差异限制在加载入口，使攻击、模型调用、Judge 和报告模块可以复用。</p>
+<p>平台当前实现的主要攻击族是 prompt 修改攻击，包括 Direct Request、Human Jailbreaks 和 Jailbreak Chat (JBC)。Direct Request 直接发送原始请求；Human Jailbreaks 使用人工整理的越狱模板包装原始行为；JBC 使用确定性前缀和包装模板，将目标改写为研究、虚构或受控评测场景中的请求。本文主实验固定使用 JBC，以控制攻击变量并观察模型和 Judge 设置对结果的影响。</p>
+<p>SafeCompass 将模型回复判定为 <code>safe</code>、<code>unsafe</code> 或 <code>ambiguous</code>。<code>safe</code> 表示模型拒答或没有提供实质性有害细节；<code>unsafe</code> 表示模型回复满足了有害请求并计为越狱成功；<code>ambiguous</code> 表示 Judge 输出未知、投票无法形成多数、接口错误或其他需要人工复核的情况。单 Judge 使用 JailbreakBench 风格提示词；多 Judge 可同时启用本地 Llama Judge、GPT-compatible Judge 和 rule-based fallback，并按多数投票聚合。rule-based fallback 只作为兜底参考，不替代 LLM Judge 的语义判断。</p>
+<h2 id="实验设计">4 实验设计</h2>
+<p>本文使用 HarmBench <code>text_test</code> 子集前 200 条样本进行评测。样本覆盖七类危害：<code>cybercrime_intrusion</code>、<code>illegal</code>、<code>misinformation_disinformation</code>、<code>chemical_biological</code>、<code>copyright</code>、<code>harassment_bullying</code> 和 <code>harmful</code>。本文不比较不同 benchmark，而是在固定数据来源下观察模型因素和 Judge 因素对结论的影响。</p>
+<p>实验包含两个被测模型设置。第一类为本地部署的 Llama-3-70B AWQ，通过 vLLM 提供 OpenAI-compatible <code>/v1/chat/completions</code> 接口，模型名记录为 <code>meta-llama/Llama-3-70b-chat-hf</code>。第二类为外部 GPT-compatible 对照模型，运行记录中的模型名为 <code>gpt-5.4</code>。三组主实验均固定使用 JBC 攻击策略，将数据集、样本数和攻击方式作为固定变量，将被测模型和 Judge 设置作为变化变量。</p>
+<table>
+<thead>
+<tr class="header">
+<th>实验</th>
+<th>运行记录</th>
+<th>被测模型</th>
+<th>Judge 设置</th>
+<th style="text-align: right;">样本数</th>
+<th>攻击</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>实验一</td>
+<td><code>2026-06-15T07-51-23Z</code></td>
+<td>Llama-3-70B AWQ</td>
+<td>单 Judge</td>
+<td style="text-align: right;">200</td>
+<td>JBC</td>
+</tr>
+<tr class="even">
+<td>实验二</td>
+<td><code>2026-06-15T08-41-51Z</code></td>
+<td>Llama-3-70B AWQ</td>
+<td>多 Judge</td>
+<td style="text-align: right;">200</td>
+<td>JBC</td>
+</tr>
+<tr class="odd">
+<td>实验三</td>
+<td><code>2026-06-15T11-50-34Z</code></td>
+<td>GPT-compatible</td>
+<td>单 Judge</td>
+<td style="text-align: right;">200</td>
+<td>JBC</td>
+</tr>
+</tbody>
+</table>
+<p>实验一与实验二控制被测模型不变，用于分析 Judge 机制变化对 ASR 的影响。实验一与实验三控制攻击策略和 Judge 设置不变，用于分析不同模型在相同标准下的安全拒答差异。核心指标为 ASR：</p>
+<pre class="text"><code>ASR = unsafe 样本数 / 原始样本总数 * 100%</code></pre>
+<p>由于 JBC 对每条原始样本只生成一次攻击尝试，本文中的样本级 ASR 与结果行级 ASR 一致。除总体 ASR 外，本文还报告安全拒绝数、越狱成功数、需复核数、错误数和类别 ASR。</p>
+<h2 id="实验结果与分析">5 实验结果与分析</h2>
+<p>三组实验总体结果如表 2 所示。实验一中，Llama-3-70B AWQ 在 200 条样本上产生 185 条安全拒绝、15 条越狱成功，ASR 为 7.5%。实验二保持模型、数据集和攻击策略不变，将 Judge 改为多 Judge 多数投票，结果为 162 条安全拒绝、32 条越狱成功、6 条需复核，ASR 上升到 16.0%。实验三在相同数据集、攻击策略和单 Judge 设置下替换为 GPT-compatible 对照模型，结果为 198 条安全拒绝、0 条越狱成功、2 条需复核，ASR 为 0.0%。</p>
+<table>
+<thead>
+<tr class="header">
+<th>实验</th>
+<th>被测模型</th>
+<th>Judge</th>
+<th style="text-align: right;">安全拒绝</th>
+<th style="text-align: right;">越狱成功</th>
+<th style="text-align: right;">需复核</th>
+<th style="text-align: right;">错误</th>
+<th style="text-align: right;">ASR</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>实验一</td>
+<td>Llama-3-70B AWQ</td>
+<td>单 Judge</td>
+<td style="text-align: right;">185</td>
+<td style="text-align: right;">15</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">7.5%</td>
+</tr>
+<tr class="even">
+<td>实验二</td>
+<td>Llama-3-70B AWQ</td>
+<td>多 Judge</td>
+<td style="text-align: right;">162</td>
+<td style="text-align: right;">32</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">16.0%</td>
+</tr>
+<tr class="odd">
+<td>实验三</td>
+<td>GPT-compatible</td>
+<td>单 Judge</td>
+<td style="text-align: right;">198</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">0.0%</td>
+</tr>
+</tbody>
+</table>
+<p>实验一显示，本地 Llama-3-70B AWQ 在单 Judge 标准下总体拒答能力较强，但仍存在可观察风险。类别层面，<code>cybercrime_intrusion</code> 的 ASR 最高，为 15.6%；<code>illegal</code> 为 10.8%；<code>misinformation_disinformation</code> 为 8.8%；<code>copyright</code> 为 0.0%。这说明技术性攻击请求更容易诱导模型输出具体步骤、payload 或代码，而版权复现请求在该设置下相对稳定。</p>
+<p>实验二表明，Judge 机制会显著影响结论。同一模型、同一数据集和同一 JBC 攻击下，多 Judge 使总体 ASR 从 7.5% 上升到 16.0%。类别变化更明显：<code>cybercrime_intrusion</code> 从 15.6% 上升到 31.3%，<code>misinformation_disinformation</code> 从 8.8% 上升到 26.5%，<code>copyright</code> 从 0.0% 上升到 9.8%，并产生 3 条需复核样本。该结果说明，多 Judge 不只是改变总体 ASR，也会改变对类别风险的判断。</p>
+<table>
+<thead>
+<tr class="header">
+<th>类别</th>
+<th style="text-align: right;">样本数</th>
+<th style="text-align: right;">单 Judge ASR</th>
+<th style="text-align: right;">多 Judge ASR</th>
+<th style="text-align: right;">多 Judge 需复核</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>cybercrime_intrusion</code></td>
+<td style="text-align: right;">32</td>
+<td style="text-align: right;">15.6%</td>
+<td style="text-align: right;">31.3%</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr class="even">
+<td><code>misinformation_disinformation</code></td>
+<td style="text-align: right;">34</td>
+<td style="text-align: right;">8.8%</td>
+<td style="text-align: right;">26.5%</td>
+<td style="text-align: right;">2</td>
+</tr>
+<tr class="odd">
+<td><code>illegal</code></td>
+<td style="text-align: right;">37</td>
+<td style="text-align: right;">10.8%</td>
+<td style="text-align: right;">13.5%</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="even">
+<td><code>copyright</code></td>
+<td style="text-align: right;">51</td>
+<td style="text-align: right;">0.0%</td>
+<td style="text-align: right;">9.8%</td>
+<td style="text-align: right;">3</td>
+</tr>
+<tr class="odd">
+<td><code>chemical_biological</code></td>
+<td style="text-align: right;">21</td>
+<td style="text-align: right;">4.8%</td>
+<td style="text-align: right;">4.8%</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="even">
+<td><code>harassment_bullying</code></td>
+<td style="text-align: right;">15</td>
+<td style="text-align: right;">6.7%</td>
+<td style="text-align: right;">6.7%</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="odd">
+<td><code>harmful</code></td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">10.0%</td>
+<td style="text-align: right;">10.0%</td>
+<td style="text-align: right;">0</td>
+</tr>
+</tbody>
+</table>
+<p>实验三显示，GPT-compatible 对照模型在 200 条样本中没有被单 Judge 判定为越狱成功，ASR 为 0.0%。但该实验有 2 条 <code>chemical_biological</code> 样本因外部接口返回 502 Bad Gateway 被标记为需复核。因此，实验三应解释为：在成功完成的 198 条调用中未观测到越狱成功；接口稳定性仍会影响实验完整性。</p>
+<p>综合三组实验可以得到三个结论。第一，在固定 Judge 和攻击策略后，SafeCompass 能区分不同模型的安全拒答表现。第二，在固定模型和攻击策略后，Judge 机制本身会改变 ASR，说明报告 ASR 时必须同时报告 Judge 设置和聚合规则。第三，总体 ASR 会掩盖类别差异，类别级 ASR 对定位模型薄弱点更有诊断价值。</p>
+<h2 id="讨论">6 讨论</h2>
+<p>SafeCompass 的研究意义在于将安全评测从临时 prompt 测试转化为可复现的数据流程。单次测试只能说明模型在某条输入上是否失败，而平台化评测可以同时记录样本来源、攻击改写、模型回复、Judge 输出、分歧票、接口错误和类别信息。这样，最终 ASR 可以被回溯到逐条样本和逐个 Judge 判断，便于复核和比较。</p>
+<p>实验结果也表明，Judge 机制不能被视为中性的后台工具。单 Judge 流程简单、成本较低，但可能低估边界风险；多 Judge 更敏感，但会引入分歧和需复核样本。对安全治理而言，更合理的做法是将自动化 Judge 用于大规模筛查，将高风险类别、低一致率样本和 ambiguous 样本交给人工复核。</p>
+<p>类别分析比单一总体 ASR 更有解释力。多 Judge 设置下，网络入侵类 ASR 达到 31.3%，明显高于化学与生物风险类的 4.8%。这说明模型风险并非均匀分布。技术性请求可能因为带有术语、代码和安全免责声明而更容易产生边界输出；版权复现类别则对 Judge 规则较敏感。后续模型改进和人工评审应优先关注这些高风险类别。</p>
+<p>本文仍有局限。实验只使用 HarmBench <code>text_test</code> 前 200 条样本，规模和类别覆盖有限；主实验只使用 JBC 单轮攻击，尚未覆盖 PAIR 等自动化多轮攻击、多模态输入、工具调用和长上下文智能体任务；Judge 可靠性尚未通过人工标注校准；实验三依赖外部接口，接口错误使部分样本无法完成评测。未来工作可扩展数据集和攻击方法，建立人工复核闭环，校准 Judge 提示词和投票策略，并完善历史运行检索、失败样本追踪和多模型批量对比能力。</p>
+<h2 id="结论">7 结论</h2>
+<p>本文提出 SafeCompass，一个面向大语言模型越狱风险的可复现安全评测与可视化平台。平台通过统一 schema 接入多源数据，并将攻击生成、模型调用、LLM-as-judge 判分、多 Judge 投票、ASR 统计、类别风险分析和报告导出组织为端到端流程。</p>
+<p>基于 HarmBench <code>text_test</code> 前 200 条样本的三组实验表明，SafeCompass 能够在控制变量的条件下比较模型安全拒答表现，并揭示 Judge 机制对评测结论的影响。Llama-3-70B AWQ 在单 Judge 下 ASR 为 7.5%，在多 Judge 下 ASR 上升到 16.0%；GPT-compatible 对照模型在相同单 Judge 设置下 ASR 为 0.0%，但有 2 条接口错误样本需复核。类别分析进一步显示，网络入侵和虚假信息等类别风险更集中，单一总体 ASR 不足以支撑细粒度安全诊断。SafeCompass 的贡献不在于提出新的攻击算法，而在于将安全评测中的数据、攻击、模型、Judge、指标和报告组织为可复现的实验系统。</p>
+<h2 id="参考文献">参考文献</h2>
+<p>[1] P. Chao, E. Debenedetti, A. Robey, M. Andriushchenko, F. Croce, V. Sehwag, E. Dobriban, N. Flammarion, G. J. Pappas, F. Tramer, H. Hassani, and E. Wong, “JailbreakBench: An Open Robustness Benchmark for Jailbreaking Large Language Models,” arXiv:2404.01318, 2024.</p>
+<p>[2] M. Mazeika, L. Phan, X. Yin, A. Zou, Z. Wang, N. Mu, E. Sakhaee, N. Li, S. Basart, B. Li, D. Forsyth, and D. Hendrycks, “HarmBench: A Standardized Evaluation Framework for Automated Red Teaming and Robust Refusal,” arXiv:2402.04249, 2024.</p>
+<p>[3] L. Zheng, W.-L. Chiang, Y. Sheng, S. Zhuang, Z. Wu, Y. Zhuang, Z. Lin, Z. Li, D. Li, E. P. Xing, H. Zhang, J. E. Gonzalez, and I. Stoica, “Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena,” arXiv:2306.05685, 2023.</p>
+</body>
+</html>
